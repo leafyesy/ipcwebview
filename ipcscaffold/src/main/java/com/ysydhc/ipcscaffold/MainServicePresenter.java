@@ -3,8 +3,6 @@ package com.ysydhc.ipcscaffold;
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.os.IBinder;
-import android.os.RemoteException;
-
 import com.ysydhc.commonlib.LogUtil;
 import com.ysydhc.ipcscaffold.service.MainService;
 
@@ -44,16 +42,19 @@ public class MainServicePresenter extends ProcessServicePresenter {
 
     public static class MainBinderPoolImpl extends IBinderPool.Stub {
 
-        public MainBinderPoolImpl() {}
+        private BinderManager manager = new BinderManager();
+
+        public MainBinderPoolImpl() {
+        }
 
         @Override
-        public IBinder queryBinder(int binderCode) throws RemoteException, NullPointerException {
-            IBinder binder = null;
-            IBinderProvider binderProvider = MainServicePresenter.getInstance().binderProviderHashMap.get(binderCode);
+        public IBinder queryBinder(int binderCode) throws NullPointerException {
+            Object binder = null;
+            IBinderProvider binderProvider = manager.binderProviderHashMap.get(binderCode);
             if (binderProvider != null) {
                 binder = binderProvider.binderProvider();
             }
-            return binder;
+            return (IBinder) binder;
         }
     }
 

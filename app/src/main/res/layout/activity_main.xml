@@ -12,6 +12,12 @@
       android:layout_height="wrap_content" />
 
   <Button
+      android:id="@+id/create_remote"
+      android:text="创建远程对象"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content" />
+
+  <Button
       android:id="@+id/call_remote"
       android:text="调用远程方法"
       android:layout_width="match_parent"

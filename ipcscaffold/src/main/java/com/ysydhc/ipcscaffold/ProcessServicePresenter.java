@@ -6,11 +6,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
-
 import androidx.annotation.NonNull;
-
 import com.ysydhc.commonlib.LogUtil;
-
+import com.ysydhc.interfaceipc.InterfaceIPCConst;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,7 +22,7 @@ public abstract class ProcessServicePresenter {
     protected Context context;
     protected IBinderPool binderPool;
     private final List<ServiceConnectionCallback> serviceConnectionCallbackList = new ArrayList<>();
-    protected final ConcurrentHashMap<Integer, IBinderProvider> binderProviderHashMap = new ConcurrentHashMap<>();
+
 
     ProcessServicePresenter() {
     }
@@ -56,15 +56,7 @@ public abstract class ProcessServicePresenter {
         serviceConnectionCallbackList.remove(callback);
     }
 
-    public void addBinderProvider(@NonNull IBinderProvider binderProvider) {
-        binderProviderHashMap.put(binderProvider.binderCode(), binderProvider);
-    }
-
-    public void removeBinderProvider(@NonNull IBinderProvider binderProvider) {
-        binderProviderHashMap.remove(binderProvider.binderCode());
-    }
-
-    public IBinder queryBinderByCode(int binderCode) {
+    public <T> T queryBinderByCode(int binderCode) {
         IBinder binder = null;
         try {
             if (binderPool != null) {
@@ -73,7 +65,22 @@ public abstract class ProcessServicePresenter {
         } catch (Exception e) {
             LogUtil.exception(TAG, "", e);
         }
-        return binder;
+        return asInterface(binder, binderCode);
+    }
+
+    public static <T> T asInterface(android.os.IBinder obj, int binderCode) {
+        if ((obj == null)) {
+            return null;
+        }
+        try {
+            Class<?> forName = Class.forName(InterfaceIPCConst.codeToClassMap.get(binderCode) + "$Stub$Proxy");
+            Constructor<?> constructor = forName.getDeclaredConstructor(android.os.IBinder.class);
+            constructor.setAccessible(true);
+            return (T) constructor.newInstance(obj);
+        } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private void connectRemoteService() {
@@ -121,6 +128,23 @@ public abstract class ProcessServicePresenter {
         void onServiceConnected();
 
         void onServiceDisconnected();
+    }
+
+    public static class BinderManager {
+
+        protected final ConcurrentHashMap<Integer, IBinderProvider> binderProviderHashMap = new ConcurrentHashMap<>();
+
+        public ConcurrentHashMap<Integer, IBinderProvider> getBinderProviderHashMap() {
+            return binderProviderHashMap;
+        }
+
+        public void addBinderProvider(@NonNull IBinderProvider binderProvider) {
+            binderProviderHashMap.put(binderProvider.binderCode(), binderProvider);
+        }
+
+        public void removeBinderProvider(@NonNull IBinderProvider binderProvider) {
+            binderProviderHashMap.remove(binderProvider.binderCode());
+        }
     }
 
 
