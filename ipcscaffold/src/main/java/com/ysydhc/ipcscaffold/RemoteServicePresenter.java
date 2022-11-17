@@ -2,7 +2,6 @@ package com.ysydhc.ipcscaffold;
 
 import android.app.Service;
 import android.os.IBinder;
-import android.os.RemoteException;
 
 import com.ysydhc.commonlib.LogUtil;
 import com.ysydhc.ipcscaffold.service.RemoteService;
@@ -36,6 +35,7 @@ public class RemoteServicePresenter extends ProcessServicePresenter {
     @Override
     protected void serviceConnectedCallback() {
         LogUtil.i(TAG, "remote serviceDisConnected");
+
 //        try {
 //            getRemoteProcessBinder().initZygoteActivity();
 //        } catch (RemoteException e) {
@@ -53,7 +53,7 @@ public class RemoteServicePresenter extends ProcessServicePresenter {
         public RemoteBinderPoolImpl() {}
 
         @Override
-        public IBinder queryBinder(int binderCode) throws RemoteException, NullPointerException {
+        public IBinder queryBinder(int binderCode) throws NullPointerException {
             IBinder binder = null;
             IBinderProvider binderProvider = RemoteServicePresenter.getInstance().binderProviderHashMap.get(binderCode);
             if (binderProvider != null) {
