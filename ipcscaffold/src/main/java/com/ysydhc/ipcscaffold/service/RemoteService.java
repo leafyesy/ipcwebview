@@ -8,22 +8,21 @@ import androidx.annotation.Nullable;
 
 import com.ysydhc.ipcscaffold.RemoteServicePresenter;
 import com.ysydhc.ipcscaffold.RemoteServicePresenter.RemoteBinderPoolImpl;
+import com.ysydhc.ipcscaffold.initiator.InterfaceIPCInitiator;
 
 public class RemoteService extends Service {
 
-    private static RemoteServiceInit init;
-
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        // 初始化
+        new InterfaceIPCInitiator().init();
+    }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         RemoteServicePresenter.getInstance().holdContext(this);
         return new RemoteBinderPoolImpl();
-    }
-
-    public interface RemoteServiceInit {
-
-        void init();
-
     }
 }

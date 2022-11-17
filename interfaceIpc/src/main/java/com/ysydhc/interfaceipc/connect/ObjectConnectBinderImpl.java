@@ -1,11 +1,9 @@
 package com.ysydhc.interfaceipc.connect;
 
 import android.os.RemoteException;
-
 import com.ysydhc.interfaceipc.IObjectConnect;
-import com.ysydhc.interfaceipc.InterfaceIPCInitiator;
+import com.ysydhc.interfaceipc.InterfaceIpcHub;
 import com.ysydhc.interfaceipc.model.ConnectCell;
-
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ObjectConnectBinderImpl extends IObjectConnect.Stub {
@@ -21,7 +19,7 @@ public class ObjectConnectBinderImpl extends IObjectConnect.Stub {
         for (IConnectObjectCreator creator : connectObjectCreateList) {
             Object result = creator.create(cell);
             if (result != null) {
-                InterfaceIPCInitiator.getInstance().putIpcImpl(cell.getKey(), result);
+                InterfaceIpcHub.getInstance().putIpcImpl(cell.getKey(), result);
                 return true;
             }
         }

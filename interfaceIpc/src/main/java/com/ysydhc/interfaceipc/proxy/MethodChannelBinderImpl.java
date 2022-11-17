@@ -2,14 +2,12 @@ package com.ysydhc.interfaceipc.proxy;
 
 import android.os.RemoteException;
 import android.text.TextUtils;
-
 import com.ysydhc.commonlib.LogUtil;
 import com.ysydhc.interfaceipc.IMethodChannelBinder;
 import com.ysydhc.interfaceipc.InterfaceIPCConst;
-import com.ysydhc.interfaceipc.InterfaceIPCInitiator;
+import com.ysydhc.interfaceipc.InterfaceIpcHub;
 import com.ysydhc.interfaceipc.model.MethodCallModel;
 import com.ysydhc.interfaceipc.model.MethodResultModel;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -20,7 +18,7 @@ public class MethodChannelBinderImpl extends IMethodChannelBinder.Stub {
 
     @Override
     public MethodResultModel invokeMethod(MethodCallModel model) throws RemoteException {
-        Object o = InterfaceIPCInitiator.getInstance().fetchCallObject(model.getKey());
+        Object o = InterfaceIpcHub.getInstance().fetchCallObject(model.getKey());
         return innerCallMethod(model, o);
     }
 

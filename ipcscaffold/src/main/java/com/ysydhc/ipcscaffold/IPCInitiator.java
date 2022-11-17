@@ -4,10 +4,9 @@ import android.content.Context;
 
 public class IPCInitiator {
 
-    public static void start(Context context) {
+    public static void startRemote(Context context) {
         RemoteServicePresenter.getInstance().initConnectService();
     }
-
 
 
 }
