@@ -1,13 +1,17 @@
 package com.ysydhc.interfaceipc.proxy;
 
+import android.os.Parcelable;
 import android.os.RemoteException;
 import android.text.TextUtils;
+
 import com.ysydhc.commonlib.LogUtil;
 import com.ysydhc.interfaceipc.IMethodChannelBinder;
 import com.ysydhc.interfaceipc.InterfaceIPCConst;
 import com.ysydhc.interfaceipc.InterfaceIpcHub;
 import com.ysydhc.interfaceipc.model.MethodCallModel;
 import com.ysydhc.interfaceipc.model.MethodResultModel;
+
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -42,10 +46,12 @@ public class MethodChannelBinderImpl extends IMethodChannelBinder.Stub {
             try {
                 method.setAccessible(true);
                 Object invoke = method.invoke(obj, objArr);
-                if (invoke == null) {
-                    return MethodResultModel.VOID_RESULT;
+                if (invoke instanceof Parcelable) {
+                    return new MethodResultModel((Parcelable) invoke);
+                } else if (invoke instanceof Serializable) {
+                    return new MethodResultModel((Serializable) invoke);
                 } else {
-                    return new MethodResultModel(invoke);
+                    return MethodResultModel.VOID_RESULT;
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {
                 LogUtil.exception(TAG, "", e);

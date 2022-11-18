@@ -3,29 +3,36 @@ package com.ysydhc.interfaceipc.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.io.Serializable;
+
 public class MethodResultModel implements Parcelable {
 
     public static final MethodResultModel VOID_RESULT = new MethodResultModel();
 
-    private Object result;
+    private Parcelable resultParcelable;
+    private Serializable resultSerializable;
 
     public MethodResultModel() {
-        this.result = VOID_RESULT;
+        this.resultParcelable = VOID_RESULT;
     }
 
-    public MethodResultModel(Object result) {
-        this.result = result;
+    public MethodResultModel(Parcelable result) {
+        this.resultParcelable = result;
     }
 
-    public Object getResult() {
-        return result;
+    public MethodResultModel(Serializable result) {
+        this.resultSerializable = result;
     }
 
     protected MethodResultModel(Parcel in) {
+        resultParcelable = in.readParcelable(this.getClass().getClassLoader());
+        resultSerializable = in.readSerializable();
     }
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        dest.writeParcelable(resultParcelable, flags);
+        dest.writeSerializable(resultSerializable);
     }
 
     @Override
@@ -44,4 +51,10 @@ public class MethodResultModel implements Parcelable {
             return new MethodResultModel[size];
         }
     };
+
+    public Object getResult() {
+        return resultParcelable == null ? resultSerializable : resultParcelable;
+    }
+
+
 }

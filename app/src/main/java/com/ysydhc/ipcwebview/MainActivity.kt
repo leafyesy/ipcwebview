@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import com.ysydhc.aninterface.test.ITest
+import com.ysydhc.ipcwebview.test.ITest
 import com.ysydhc.interfaceipc.IMethodChannelBinder
 import com.ysydhc.interfaceipc.IObjectConnect
 import com.ysydhc.interfaceipc.InterfaceIPCConst
@@ -46,14 +46,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun createRemoteObjectAndConnect() {
         val connectBinder = RemoteServicePresenter.getInstance()
-            .queryBinderByCode<IObjectConnect>(InterfaceIPCConst.BINDER_CODE_OBJ_CONNECT)
+                .queryBinderByCode<IObjectConnect>(InterfaceIPCConst.BINDER_CODE_OBJ_CONNECT)
         connectBinder.connect(ConnectCell(ITest.KEY_CONNECT))
     }
 
     private fun createRemoteProxy() {
-        interfaceProxy = InterfaceProxy<ITest>(ITest.KEY_CONNECT)
+        interfaceProxy = InterfaceProxy(ITest.KEY_CONNECT, ITest::class.java)
         val methodCallBinder = RemoteServicePresenter.getInstance()
-            .queryBinderByCode<IMethodChannelBinder>(InterfaceIPCConst.BINDER_CODE_METHOD_CALL)
+                .queryBinderByCode<IMethodChannelBinder>(InterfaceIPCConst.BINDER_CODE_METHOD_CALL)
         interfaceProxy?.setMethodChannelBinder(methodCallBinder)
         test = interfaceProxy?.createProxy()
     }

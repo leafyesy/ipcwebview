@@ -13,7 +13,6 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/commonlib" />
-            <option value="$PROJECT_DIR$/interface" />
             <option value="$PROJECT_DIR$/interfaceIpc" />
             <option value="$PROJECT_DIR$/ipcscaffold" />
           </set>

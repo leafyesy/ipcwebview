@@ -10,27 +10,28 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
-import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class InterfaceProxy<T> {
 
     private T outProxy; // 外部代理
+    private Class<T> clazz;
     private T innerProxy; // 内部代理
     private long key = -1; // 标记位,用于确定调用跨进程的另一方的对象
     private IMethodChannelBinder binder;
     // 记录方法调用的时间戳
     private final CopyOnWriteArrayList<Long> methodCallTimestampList = new CopyOnWriteArrayList<Long>();
 
-    public InterfaceProxy(long key) {
+    public InterfaceProxy(long key, Class<T> clazz) {
         this.key = key;
+        this.clazz = clazz;
     }
 
     public InterfaceProxy(long key, T outProxy) {
         this.key = key;
+        this.clazz = (Class<T>) outProxy.getClass();
         this.outProxy = outProxy;
     }
 
@@ -40,7 +41,7 @@ public class InterfaceProxy<T> {
 
     public T createProxy()
             throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
-        Class<?> proxyClazz = Proxy.getProxyClass(getTypeArgument().getClassLoader(), getTypeArgument());
+        Class<?> proxyClazz = Proxy.getProxyClass(clazz.getClassLoader(), clazz);
         Constructor<?> proxyConstructor = proxyClazz.getConstructor(InvocationHandler.class);
         Object instance = proxyConstructor.newInstance(new InvocationHandler() {
             @Override
@@ -73,23 +74,11 @@ public class InterfaceProxy<T> {
                         }
                     }
                 }
-                return false;
+                return null;
             }
         });
         innerProxy = (T) instance;
         return (T) instance;
-    }
-
-    private Class getTypeArgument() {
-        Type genericSuperclass = InterfaceProxy.class.getGenericSuperclass();
-        // 强转成 参数化类型 实体.
-        ParameterizedType parameterizedType = (ParameterizedType) genericSuperclass;
-        System.out.println(parameterizedType);
-
-        // 获取超类的泛型类型数组. 即SuperClass<User>的<>中的内容, 因为泛型可以有多个, 所以用数组表示
-        Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
-        Type genericType = actualTypeArguments[0];
-        return (Class) genericType;
     }
 
 

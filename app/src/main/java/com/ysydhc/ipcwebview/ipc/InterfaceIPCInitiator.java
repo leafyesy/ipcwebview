@@ -1,7 +1,8 @@
-package com.ysydhc.ipcscaffold.initiator;
+package com.ysydhc.ipcwebview.ipc;
 
 import android.os.IBinder;
-import com.ysydhc.aninterface.test.ITest;
+
+import com.ysydhc.ipcwebview.test.ITest;
 import com.ysydhc.interfaceipc.InterfaceIPCConst;
 import com.ysydhc.interfaceipc.InterfaceIpcHub;
 import com.ysydhc.interfaceipc.connect.IConnectObjectCreator;
@@ -9,6 +10,7 @@ import com.ysydhc.interfaceipc.model.ConnectCell;
 import com.ysydhc.interfaceipc.proxy.MethodChannelBinderImpl;
 import com.ysydhc.ipcscaffold.IBinderProvider;
 import com.ysydhc.ipcscaffold.ProcessServicePresenter.BinderManager;
+import com.ysydhc.ipcscaffold.initiator.IIPCInitiatorTask;
 
 public class InterfaceIPCInitiator implements IIPCInitiatorTask {
 
@@ -50,15 +52,7 @@ public class InterfaceIPCInitiator implements IIPCInitiatorTask {
             @Override
             public Object create(ConnectCell cell) {
                 if (cell != null && cell.getKey() == 100L) {
-                    return new ITest() {
-
-                        int count = 1000;
-
-                        @Override
-                        public int countPlus() {
-                            return count++;
-                        }
-                    };
+                    return new RemoteTest();
                 }
                 return null;
             }

@@ -52,6 +52,7 @@ public class MethodCallModel implements Parcelable {
         methodName = in.readString();
         invokeTimestamp = in.readLong();
         needCallback = in.readByte();
+        arguments = in.readHashMap(HashMap.class.getClassLoader());
     }
 
     @Override
@@ -60,6 +61,7 @@ public class MethodCallModel implements Parcelable {
         dest.writeString(methodName);
         dest.writeLong(invokeTimestamp);
         dest.writeByte(needCallback);
+        dest.writeMap(arguments);
     }
 
     @Override

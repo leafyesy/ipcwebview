@@ -1,4 +1,6 @@
-package com.ysydhc.aninterface.test
+package com.ysydhc.ipcwebview.test
+
+import com.ysydhc.interfaceipc.annotation.IpcMethodFlag
 
 interface ITest {
 
@@ -6,7 +8,7 @@ interface ITest {
         const val KEY_CONNECT = 100L
     }
 
-
+    @IpcMethodFlag()
     fun countPlus(): Int
 
 }
