@@ -1,5 +1,6 @@
 package com.ysydhc.ipcwebview.test
 
+import com.ysydhc.interfaceipc.annotation.CallbackParam
 import com.ysydhc.interfaceipc.annotation.IpcMethodFlag
 
 interface ITest {
@@ -10,5 +11,14 @@ interface ITest {
 
     @IpcMethodFlag()
     fun countPlus(): Int
+
+    @IpcMethodFlag(IpcMethodFlag.KEY_LOCAL_CALLBACK_SET)
+    fun setListener(@CallbackParam listener: TestListener)
+
+}
+
+interface TestListener {
+
+    fun onConnect(count: Int): Boolean
 
 }

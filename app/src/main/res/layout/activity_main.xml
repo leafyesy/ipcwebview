@@ -18,6 +18,12 @@
       android:layout_height="wrap_content" />
 
   <Button
+      android:id="@+id/set_callback"
+      android:text="设置回调"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content" />
+
+  <Button
       android:id="@+id/call_remote"
       android:text="调用远程方法"
       android:layout_width="match_parent"

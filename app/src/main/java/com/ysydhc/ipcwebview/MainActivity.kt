@@ -12,6 +12,7 @@ import com.ysydhc.interfaceipc.model.ConnectCell
 import com.ysydhc.interfaceipc.proxy.InterfaceProxy
 import com.ysydhc.ipcscaffold.IPCInitiator
 import com.ysydhc.ipcscaffold.RemoteServicePresenter
+import com.ysydhc.ipcwebview.test.TestListener
 
 class MainActivity : AppCompatActivity() {
 
@@ -21,7 +22,12 @@ class MainActivity : AppCompatActivity() {
 
     private var interfaceProxy: InterfaceProxy<ITest>? = null
     private var test: ITest? = null
-
+    private val listener = object : TestListener {
+        override fun onConnect(count: Int): Boolean {
+            Log.i(TAG, "TestListener :$count")
+            return count % 2 == 0
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +38,9 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.create_remote).setOnClickListener {
             createRemoteObjectAndConnect()
             createRemoteProxy()
+        }
+        findViewById<View>(R.id.set_callback).setOnClickListener {
+            test?.setListener(listener)
         }
         findViewById<View>(R.id.call_remote).setOnClickListener {
             callCountPlus()

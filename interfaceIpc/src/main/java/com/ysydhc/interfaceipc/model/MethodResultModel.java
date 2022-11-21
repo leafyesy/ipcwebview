@@ -11,6 +11,7 @@ public class MethodResultModel implements Parcelable {
 
     private Parcelable resultParcelable;
     private Serializable resultSerializable;
+    private byte isCalledSuc;
 
     public MethodResultModel() {
         this.resultParcelable = VOID_RESULT;
@@ -27,12 +28,14 @@ public class MethodResultModel implements Parcelable {
     protected MethodResultModel(Parcel in) {
         resultParcelable = in.readParcelable(this.getClass().getClassLoader());
         resultSerializable = in.readSerializable();
+        isCalledSuc = in.readByte();
     }
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeParcelable(resultParcelable, flags);
         dest.writeSerializable(resultSerializable);
+        dest.writeByte(isCalledSuc);
     }
 
     @Override
