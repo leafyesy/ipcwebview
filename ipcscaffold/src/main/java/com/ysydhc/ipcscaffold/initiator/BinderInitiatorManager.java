@@ -4,19 +4,19 @@ import com.ysydhc.ipcscaffold.ProcessServicePresenter.BinderManager;
 
 import java.util.ArrayList;
 
-public class RemoteBinderInitiatorManager {
+public class BinderInitiatorManager {
 
-    private static volatile RemoteBinderInitiatorManager instance = null;
+    private static volatile BinderInitiatorManager instance = null;
 
-    private RemoteBinderInitiatorManager() {
+    private BinderInitiatorManager() {
 
     }
 
-    public static RemoteBinderInitiatorManager getInstance() {
+    public static BinderInitiatorManager getInstance() {
         if (instance == null) {
-            synchronized (RemoteBinderInitiatorManager.class) {
+            synchronized (BinderInitiatorManager.class) {
                 if (instance == null) {
-                    instance = new RemoteBinderInitiatorManager();
+                    instance = new BinderInitiatorManager();
                 }
             }
         }

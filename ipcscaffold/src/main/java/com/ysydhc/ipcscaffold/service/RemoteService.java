@@ -6,9 +6,10 @@ import android.os.IBinder;
 
 import androidx.annotation.Nullable;
 
+import com.ysydhc.ipcscaffold.IPCInitiator;
 import com.ysydhc.ipcscaffold.RemoteServicePresenter;
 import com.ysydhc.ipcscaffold.RemoteServicePresenter.RemoteBinderPoolImpl;
-import com.ysydhc.ipcscaffold.initiator.RemoteBinderInitiatorManager;
+import com.ysydhc.ipcscaffold.initiator.BinderInitiatorManager;
 
 public class RemoteService extends Service {
 
@@ -18,7 +19,11 @@ public class RemoteService extends Service {
     public void onCreate() {
         super.onCreate();
         // 初始化
-        RemoteBinderInitiatorManager.getInstance().notifyInit(pool.getManager());
+        BinderInitiatorManager.getInstance().notifyInit(pool.getManager());
+        // 绑定主进程服务
+        IPCInitiator.startMain(this);
+        // 启动远程ZygoteActivity
+
     }
 
     @Nullable

@@ -13,7 +13,10 @@ public class MethodChannelBinderImpl extends IMethodChannelBinder.Stub {
 
     @Override
     public MethodResultModel invokeMethod(MethodCallModel model) throws RemoteException {
-        InterfaceProxy wrapper = InterfaceIpcHub.getInstance().fetchCallObject(model.getKey());
+        InterfaceProxy<?> wrapper = InterfaceIpcHub.getInstance().fetchCallObject(model.getKey());
+        if (wrapper == null) {
+            return null;
+        }
         if (model.getIsCallbackCalled()) {
             return wrapper.responseCallbackCall(model);
         }

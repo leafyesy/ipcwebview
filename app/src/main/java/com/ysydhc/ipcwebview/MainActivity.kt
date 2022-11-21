@@ -8,6 +8,7 @@ import com.ysydhc.ipcwebview.test.ITest
 import com.ysydhc.interfaceipc.IMethodChannelBinder
 import com.ysydhc.interfaceipc.IObjectConnect
 import com.ysydhc.interfaceipc.InterfaceIPCConst
+import com.ysydhc.interfaceipc.InterfaceIpcHub
 import com.ysydhc.interfaceipc.model.ConnectCell
 import com.ysydhc.interfaceipc.proxy.InterfaceProxy
 import com.ysydhc.ipcscaffold.IPCInitiator
@@ -61,9 +62,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun createRemoteProxy() {
         interfaceProxy = InterfaceProxy(ITest.KEY_CONNECT, ITest::class.java)
-        val methodCallBinder = RemoteServicePresenter.getInstance()
-                .queryBinderByCode<IMethodChannelBinder>(InterfaceIPCConst.BINDER_CODE_METHOD_CALL)
-        interfaceProxy?.setMethodChannelBinder(methodCallBinder)
+        InterfaceIpcHub.getInstance().putIpcImpl(ITest.KEY_CONNECT, interfaceProxy)
+//        val methodCallBinder = RemoteServicePresenter.getInstance()
+//                .queryBinderByCode<IMethodChannelBinder>(InterfaceIPCConst.BINDER_CODE_METHOD_CALL)
+//        interfaceProxy?.setMethodChannelBinder(methodCallBinder)
         test = interfaceProxy?.createProxy()
     }
 

@@ -2,9 +2,13 @@ package com.ysydhc.ipcscaffold;
 
 import android.app.Service;
 import android.os.IBinder;
+
 import com.ysydhc.commonlib.LogUtil;
 import com.ysydhc.ipcscaffold.service.RemoteService;
 
+/**
+ * 主进程持有,可以快速访问子进程binder
+ */
 public class RemoteServicePresenter extends ProcessServicePresenter {
 
     private static final String TAG = RemoteServicePresenter.class.getSimpleName();
@@ -47,9 +51,12 @@ public class RemoteServicePresenter extends ProcessServicePresenter {
         LogUtil.i(TAG, "remote serviceDisConnected");
     }
 
+    /**
+     * 远程进程运行
+     */
     public static class RemoteBinderPoolImpl extends IBinderPool.Stub {
 
-        private final BinderManager manager = new BinderManager();
+        private final BinderManager manager = new BinderManager(MainServicePresenter.getInstance());
 
         public RemoteBinderPoolImpl() {
         }

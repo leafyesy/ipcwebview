@@ -7,8 +7,9 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.ysydhc.commonlib.LogUtil;
-import com.ysydhc.interfaceipc.InterfaceIPCConst;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -68,12 +69,17 @@ public abstract class ProcessServicePresenter {
         return asInterface(binder, binderCode);
     }
 
+    @Nullable
+    public IBinderPool getBinderPool() {
+        return binderPool;
+    }
+
     public static <T> T asInterface(android.os.IBinder obj, int binderCode) {
         if ((obj == null)) {
             return null;
         }
         try {
-            Class<?> forName = Class.forName(InterfaceIPCConst.codeToClassMap.get(binderCode) + "$Stub$Proxy");
+            Class<?> forName = Class.forName(BinderCode2Class.getInstance().codeToClassMap.get(binderCode) + "$Stub$Proxy");
             Constructor<?> constructor = forName.getDeclaredConstructor(android.os.IBinder.class);
             constructor.setAccessible(true);
             return (T) constructor.newInstance(obj);
@@ -132,7 +138,13 @@ public abstract class ProcessServicePresenter {
 
     public static class BinderManager {
 
+        public ProcessServicePresenter presenter;
+
         protected final ConcurrentHashMap<Integer, IBinderProvider> binderProviderHashMap = new ConcurrentHashMap<>();
+
+        public BinderManager(ProcessServicePresenter presenter) {
+            this.presenter = presenter;
+        }
 
         public ConcurrentHashMap<Integer, IBinderProvider> getBinderProviderHashMap() {
             return binderProviderHashMap;

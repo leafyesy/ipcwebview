@@ -42,9 +42,13 @@ public class MainServicePresenter extends ProcessServicePresenter {
 
     public static class MainBinderPoolImpl extends IBinderPool.Stub {
 
-        private BinderManager manager = new BinderManager();
+        private final BinderManager manager = new BinderManager(RemoteServicePresenter.getInstance());
 
         public MainBinderPoolImpl() {
+        }
+
+        public BinderManager getManager() {
+            return manager;
         }
 
         @Override

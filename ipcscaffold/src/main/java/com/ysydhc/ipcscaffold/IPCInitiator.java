@@ -9,5 +9,10 @@ public class IPCInitiator {
         RemoteServicePresenter.getInstance().initConnectService();
     }
 
+    public static void startMain(Context context) {
+        MainServicePresenter.getInstance().holdContext(context);
+        MainServicePresenter.getInstance().initConnectService();
+    }
+
 
 }

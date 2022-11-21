@@ -1,6 +1,7 @@
 package com.ysydhc.interfaceipc.proxy;
 
 import android.os.Parcelable;
+import android.os.RemoteException;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
@@ -83,7 +84,8 @@ public class InterfaceProxy<T> {
                             MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp,
                                     argsHashMap, MethodCallModel.TYPE_NORMAL_METHOD_CALL, (byte) 1);
                             MethodResultModel methodResultModel = binder.invokeMethod(callModel);
-                            if (methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
+                            if (methodResultModel.getResult() == MethodResultModel.VOID_RESULT
+                                    || methodResultModel.getResult() == null) {
                                 return getResultByReturnType(method.getReturnType());
                             } else {
                                 return methodResultModel.getResult();
@@ -93,46 +95,13 @@ public class InterfaceProxy<T> {
                             if (args.length != 1) {
                                 return getResultByReturnType(method.getReturnType());
                             }
-                            proxyCallbackManager.addCallback(args[0], false);
-                            // 标记设置了哪些回调有监听
-                            HashMap<String, Object> argsHashMap = new HashMap<String, Object>();
-                            argsHashMap.put(InterfaceIPCConst.IPC_KEY_CALLBACK_CLASS_NAME, args[0].getClass());
-                            MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp,
-                                    argsHashMap, (byte) MethodCallModel.TYPE_ADD_OR_SET_CALLBACK_METHOD, (byte) 1);
-                            MethodResultModel methodResultModel = binder.invokeMethod(callModel);
-                            if (methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
-                                return getResultByReturnType(method.getReturnType());
-                            } else {
-                                return methodResultModel.getResult();
-                            }
+                            return markCallback(method, args, callTimestamp, false);
                         }
                         case IpcMethodFlag.KEY_LOCAL_CALLBACK_SET: {
                             if (args.length != 1) {
                                 return getResultByReturnType(method.getReturnType());
                             }
-                            proxyCallbackManager.addCallback(args[0], true);
-                            // 标记设置了哪些回调有监听
-                            Metadata annotation = args[0].getClass().getAnnotation(Metadata.class);
-                            Class<?> aClass = null;
-                            if (annotation != null) {
-                                String clazzName = annotation.d2()[1];
-                                String realClazzName = clazzName.substring(1, clazzName.length() - 1).replace("/", ".");
-                                aClass = Class.forName(realClazzName);
-                            }
-                            if (aClass == null) {
-                                aClass = args[0].getClass();
-                            }
-                            HashMap<String, Object> argsHashMap = new HashMap<String, Object>();
-                            argsHashMap.put(InterfaceIPCConst.IPC_KEY_CALLBACK_CLASS_NAME, aClass.getName());
-                            MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp,
-                                    argsHashMap, (byte) MethodCallModel.TYPE_ADD_OR_SET_CALLBACK_METHOD, (byte) 1);
-                            MethodResultModel methodResultModel = binder.invokeMethod(callModel);
-                            if (methodResultModel == null
-                                    || methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
-                                return getResultByReturnType(method.getReturnType());
-                            } else {
-                                return methodResultModel.getResult();
-                            }
+                            return markCallback(method, args, callTimestamp, true);
                         }
                     }
                 }
@@ -140,6 +109,35 @@ public class InterfaceProxy<T> {
             }
         });
         return (T) instance;
+    }
+
+    @Nullable
+    private Object markCallback(Method method, Object[] args, long callTimestamp, boolean isClearOld)
+            throws ClassNotFoundException, RemoteException {
+        // 标记设置了哪些回调有监听
+
+        Metadata annotation = args[0].getClass().getAnnotation(Metadata.class);
+        Class<?> aClass = null;
+        if (annotation != null) {
+            String clazzName = annotation.d2()[1];
+            String realClazzName = clazzName.substring(1, clazzName.length() - 1).replace("/", ".");
+            aClass = Class.forName(realClazzName);
+        }
+        if (aClass == null) {
+            aClass = args[0].getClass();
+        }
+        HashMap<String, Object> argsHashMap = new HashMap<String, Object>();
+        argsHashMap.put(InterfaceIPCConst.IPC_KEY_CALLBACK_CLASS_NAME, aClass.getName());
+        proxyCallbackManager.addCallback(aClass, args[0], isClearOld);
+        MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp,
+                argsHashMap, (byte) MethodCallModel.TYPE_ADD_OR_SET_CALLBACK_METHOD, (byte) 1);
+        MethodResultModel methodResultModel = binder.invokeMethod(callModel);
+        if (methodResultModel == null
+                || methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
+            return getResultByReturnType(method.getReturnType());
+        } else {
+            return methodResultModel.getResult();
+        }
     }
 
     public MethodResultModel responseCallbackCall(MethodCallModel model) {
@@ -292,7 +290,7 @@ public class InterfaceProxy<T> {
                 // 对比每个参数的类型
                 boolean isAllEqual = true;
                 for (int j = 0; j < parameterTypes.length; j++) {
-                    if (parameterTypes[j] != classes[j]) {
+                    if (parameterTypes[j] != classes[j] && !dataTypeEquals(parameterTypes[j], classes[j])) {
                         isAllEqual = false;
                         break;
                     }
@@ -303,6 +301,28 @@ public class InterfaceProxy<T> {
             }
         }
         return null;
+    }
+
+    private static boolean dataTypeEquals(Class<?> c1, Class<?> c2) {
+        if (c1 == int.class && c2 == Integer.class || c1 == Integer.class && c2 == int.class) {
+            return true;
+        }
+        if (c1 == byte.class && c2 == Byte.class || c1 == Byte.class && c2 == byte.class) {
+            return true;
+        }
+        if (c1 == short.class && c2 == Short.class || c1 == Short.class && c2 == short.class) {
+            return true;
+        }
+        if (c1 == float.class && c2 == Float.class || c1 == Float.class && c2 == float.class) {
+            return true;
+        }
+        if (c1 == long.class && c2 == Long.class || c1 == Long.class && c2 == long.class) {
+            return true;
+        }
+        if (c1 == boolean.class && c2 == Boolean.class || c1 == Boolean.class && c2 == boolean.class) {
+            return true;
+        }
+        return false;
     }
 
     @Nullable

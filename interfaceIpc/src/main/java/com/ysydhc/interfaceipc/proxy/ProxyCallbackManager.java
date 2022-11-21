@@ -12,7 +12,7 @@ public class ProxyCallbackManager {
     private final ConcurrentHashMap<Class<?>, List<Object>> callbackListCacheMap = new ConcurrentHashMap<Class<?>, List<Object>>();
 
 
-    public void addCallback(Object callback, boolean isOnlyOne) {
+    public void addCallback(Class<?> clazz, Object callback, boolean isOnlyOne) {
         List<Object> list = callbackListCacheMap.get(callback.getClass());
         if (list == null) {
             list = new CopyOnWriteArrayList<>();
@@ -24,7 +24,8 @@ public class ProxyCallbackManager {
             list.clear();
         }
         list.add(callback);
-        callbackListCacheMap.put(callback.getClass(), list);
+
+        callbackListCacheMap.put(clazz, list);
     }
 
     public void removeCallback(Object callback) {

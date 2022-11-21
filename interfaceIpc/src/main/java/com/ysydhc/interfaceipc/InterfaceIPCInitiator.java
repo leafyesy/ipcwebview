@@ -1,13 +1,9 @@
-package com.ysydhc.ipcwebview.ipc;
+package com.ysydhc.interfaceipc;
 
 import android.os.IBinder;
 
-import com.ysydhc.ipcwebview.test.ITest;
-import com.ysydhc.interfaceipc.InterfaceIPCConst;
-import com.ysydhc.interfaceipc.InterfaceIpcHub;
-import com.ysydhc.interfaceipc.connect.IConnectObjectCreator;
-import com.ysydhc.interfaceipc.model.ConnectCell;
 import com.ysydhc.interfaceipc.proxy.MethodChannelBinderImpl;
+import com.ysydhc.ipcscaffold.BinderCode2Class;
 import com.ysydhc.ipcscaffold.IBinderProvider;
 import com.ysydhc.ipcscaffold.ProcessServicePresenter.BinderManager;
 import com.ysydhc.ipcscaffold.initiator.IIPCInitiatorTask;
@@ -16,6 +12,10 @@ public class InterfaceIPCInitiator implements IIPCInitiatorTask {
 
     @Override
     public void init(BinderManager manager) {
+        BinderCode2Class.getInstance()
+                .put(InterfaceIPCConst.BINDER_CODE_OBJ_CONNECT, InterfaceIPCConst.BINDER_CODE_OBJ_CONNECT_PACKAGE);
+        BinderCode2Class.getInstance()
+                .put(InterfaceIPCConst.BINDER_CODE_METHOD_CALL, InterfaceIPCConst.BINDER_CODE_METHOD_CALL_PACKAGE);
         // 绑定BinderCode -> Binder的创建
         manager.addBinderProvider(new IBinderProvider() {
 
@@ -45,16 +45,6 @@ public class InterfaceIPCInitiator implements IIPCInitiatorTask {
                     binder = new MethodChannelBinderImpl();
                 }
                 return binder;
-            }
-        });
-        // 绑定 Object key -> Object创建
-        InterfaceIpcHub.getInstance().setConnectObjectCreateList(new IConnectObjectCreator() {
-            @Override
-            public Object create(ConnectCell cell) {
-                if (cell != null && cell.getKey() == 100L) {
-                    return new RemoteTest();
-                }
-                return null;
             }
         });
     }

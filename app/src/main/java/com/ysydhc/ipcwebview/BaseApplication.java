@@ -3,8 +3,10 @@ package com.ysydhc.ipcwebview;
 import android.app.Application;
 
 import com.ysydhc.commonlib.ProcessUtil;
-import com.ysydhc.ipcscaffold.initiator.RemoteBinderInitiatorManager;
-import com.ysydhc.ipcwebview.ipc.InterfaceIPCInitiator;
+import com.ysydhc.interfaceipc.InterfaceIPCInitiator;
+import com.ysydhc.interfaceipc.RemoteCallbackSupportInitiator;
+import com.ysydhc.ipcscaffold.initiator.BinderInitiatorManager;
+import com.ysydhc.ipcwebview.ipc.RemoteTestInitiator;
 
 public class BaseApplication extends Application {
 
@@ -13,7 +15,12 @@ public class BaseApplication extends Application {
         super.onCreate();
         // 获取进程名
         if (ProcessUtil.getCurrentProcessName(this).endsWith("tool")) {
-            RemoteBinderInitiatorManager.getInstance().addTask(new InterfaceIPCInitiator());
+            BinderInitiatorManager.getInstance().addTask(new InterfaceIPCInitiator());
+            BinderInitiatorManager.getInstance().addTask(new RemoteCallbackSupportInitiator());
+            BinderInitiatorManager.getInstance().addTask(new RemoteTestInitiator());
+        } else {
+            BinderInitiatorManager.getInstance().addTask(new InterfaceIPCInitiator());
+            BinderInitiatorManager.getInstance().addTask(new RemoteCallbackSupportInitiator());
         }
     }
 }
