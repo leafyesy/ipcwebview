@@ -37,11 +37,15 @@ public class ConnectCell implements Parcelable {
 
     protected ConnectCell(Parcel in) {
         key = in.readLong();
+        ext = in.readParcelable(in.getClass().getClassLoader());
+        arguments = in.readHashMap(in.getClass().getClassLoader());
     }
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeLong(key);
+        dest.writeParcelable(ext, flags);
+        dest.writeMap(arguments);
     }
 
     @Override

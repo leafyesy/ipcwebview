@@ -15,6 +15,11 @@ public @interface IpcMethodFlag {
 
     int KEY_PARAM_CALLBACK = 100;
 
+    int THREAD_MAIN = 0;
+    int THREAD_SUB = 1;
+
     int value() default KEY_IPC_METHOD;
+
+    int thread() default THREAD_MAIN;
 
 }

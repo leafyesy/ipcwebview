@@ -1,20 +1,18 @@
 plugins {
-    id 'com.android.application'
+    id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
 }
 
 android {
-    namespace 'com.ysydhc.ipcwebview'
+    namespace 'com.ysydhc.remoteview'
     compileSdk 32
 
     defaultConfig {
-        applicationId "com.ysydhc.ipcwebview"
         minSdk 21
         targetSdk 32
-        versionCode 1
-        versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
     }
 
     buildTypes {
@@ -40,9 +38,5 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.4'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
-    implementation project(':ipcscaffold')
-    implementation project(':interfaceIpc')
     implementation project(':commonlib')
-    implementation project(':remoteview')
-    implementation project(':remoteweb')
 }

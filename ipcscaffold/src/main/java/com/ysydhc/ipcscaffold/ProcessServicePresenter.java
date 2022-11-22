@@ -6,10 +6,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.ysydhc.commonlib.LogUtil;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -79,7 +81,8 @@ public abstract class ProcessServicePresenter {
             return null;
         }
         try {
-            Class<?> forName = Class.forName(BinderCode2Class.getInstance().codeToClassMap.get(binderCode) + "$Stub$Proxy");
+            Class<?> forName = Class.forName(
+                    BinderCode2Class.getInstance().codeToClassMap.get(binderCode) + "$Stub$Proxy");
             Constructor<?> constructor = forName.getDeclaredConstructor(android.os.IBinder.class);
             constructor.setAccessible(true);
             return (T) constructor.newInstance(obj);
@@ -138,7 +141,19 @@ public abstract class ProcessServicePresenter {
 
     public static class BinderManager {
 
-        public ProcessServicePresenter presenter;
+        public final ProcessServicePresenter presenter;
+        private Context context;
+
+        public Context getContext() {
+            if (ZygoteActivity.activity != null) {
+                return ZygoteActivity.activity;
+            }
+            return context;
+        }
+
+        public void setContext(Context context) {
+            this.context = context;
+        }
 
         protected final ConcurrentHashMap<Integer, IBinderProvider> binderProviderHashMap = new ConcurrentHashMap<>();
 

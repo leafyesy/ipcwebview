@@ -21,6 +21,7 @@ public class MainService extends Service {
     public void onCreate() {
         super.onCreate();
         // 初始化
+        pool.getManager().setContext(this);
         BinderInitiatorManager.getInstance().notifyInit(pool.getManager());
         LogUtil.i(TAG, "main service init");
     }

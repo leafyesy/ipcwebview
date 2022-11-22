@@ -11,7 +11,13 @@ public class ZygoteActivity extends Activity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        ZygoteActivity.activity = activity;
+        ZygoteActivity.activity = this;
         super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        finish();
     }
 }

@@ -15,6 +15,7 @@
             <option value="$PROJECT_DIR$/commonlib" />
             <option value="$PROJECT_DIR$/interfaceIpc" />
             <option value="$PROJECT_DIR$/ipcscaffold" />
+            <option value="$PROJECT_DIR$/remoteview" />
             <option value="$PROJECT_DIR$/remoteweb" />
           </set>
         </option>

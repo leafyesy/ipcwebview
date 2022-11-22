@@ -3,6 +3,7 @@ package com.ysydhc.ipcwebview
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import com.ysydhc.ipcwebview.test.ITest
 import com.ysydhc.interfaceipc.IMethodChannelBinder
@@ -14,6 +15,7 @@ import com.ysydhc.interfaceipc.proxy.InterfaceProxy
 import com.ysydhc.ipcscaffold.IPCInitiator
 import com.ysydhc.ipcscaffold.RemoteServicePresenter
 import com.ysydhc.ipcwebview.test.TestListener
+import com.ysydhc.remoteweb.readerview.WebViewImageReaderView
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var interfaceProxy: InterfaceProxy<ITest>? = null
+    private var webViewImageReaderView: WebViewImageReaderView? = null
     private var test: ITest? = null
     private val listener = object : TestListener {
         override fun onConnect(count: Int): Boolean {
@@ -41,11 +44,19 @@ class MainActivity : AppCompatActivity() {
             createRemoteProxy()
         }
         findViewById<View>(R.id.set_callback).setOnClickListener {
-            test?.setListener(listener)
+            //test?.setListener(listener)
+            webViewImageReaderView?.loadUrl("https://www.baidu.com")
         }
         findViewById<View>(R.id.call_remote).setOnClickListener {
-            callCountPlus()
+            //callCountPlus()
+            if (webViewImageReaderView != null) {
+                return@setOnClickListener
+            }
+            webViewImageReaderView = WebViewImageReaderView(this)
+            findViewById<ViewGroup>(R.id.remote_webview).addView(webViewImageReaderView)
+
         }
+
 
     }
 
@@ -63,9 +74,6 @@ class MainActivity : AppCompatActivity() {
     private fun createRemoteProxy() {
         interfaceProxy = InterfaceProxy(ITest.KEY_CONNECT, ITest::class.java)
         InterfaceIpcHub.getInstance().putIpcImpl(ITest.KEY_CONNECT, interfaceProxy)
-//        val methodCallBinder = RemoteServicePresenter.getInstance()
-//                .queryBinderByCode<IMethodChannelBinder>(InterfaceIPCConst.BINDER_CODE_METHOD_CALL)
-//        interfaceProxy?.setMethodChannelBinder(methodCallBinder)
         test = interfaceProxy?.createProxy()
     }
 

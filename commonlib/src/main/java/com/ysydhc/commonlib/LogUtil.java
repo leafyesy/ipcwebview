@@ -12,4 +12,12 @@ public class LogUtil {
         Log.e(tag, message, t);
     }
 
+    public static void exception(String tag, Throwable t) {
+        Log.e(tag, "", t);
+    }
+
+    public static void exception(Throwable t) {
+        Log.e("exception", "", t);
+    }
+
 }

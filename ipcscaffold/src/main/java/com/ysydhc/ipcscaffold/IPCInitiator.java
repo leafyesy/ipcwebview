@@ -1,6 +1,7 @@
 package com.ysydhc.ipcscaffold;
 
 import android.content.Context;
+import android.content.Intent;
 
 public class IPCInitiator {
 
@@ -14,5 +15,10 @@ public class IPCInitiator {
         MainServicePresenter.getInstance().initConnectService();
     }
 
+    public static void startZygoteActivity(Context context) {
+        Intent intent = new Intent(context, ZygoteActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
+    }
 
 }

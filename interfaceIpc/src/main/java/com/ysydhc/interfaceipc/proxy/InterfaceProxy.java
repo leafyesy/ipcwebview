@@ -1,5 +1,7 @@
 package com.ysydhc.interfaceipc.proxy;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Parcelable;
 import android.os.RemoteException;
 import android.text.TextUtils;
@@ -24,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 
 import kotlin.Metadata;
 
@@ -38,6 +41,8 @@ public class InterfaceProxy<T> {
     // 记录方法调用的时间戳
     private final CopyOnWriteArrayList<Long> methodCallTimestampList = new CopyOnWriteArrayList<Long>();
     private final ProxyCallbackManager proxyCallbackManager = new ProxyCallbackManager();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final ConcurrentHashMap<Integer, MethodResultModel> keyToResultModelMap = new ConcurrentHashMap<>();
 
     public InterfaceProxy(long key, Class<T> clazz) {
         this.key = key;
@@ -83,6 +88,7 @@ public class InterfaceProxy<T> {
                             argsHashMap.put(InterfaceIPCConst.IPC_KEY_ARGS, args);
                             MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp,
                                     argsHashMap, MethodCallModel.TYPE_NORMAL_METHOD_CALL, (byte) 1);
+                            callModel.setMainThread((byte) ipcMethodFlag.thread());
                             MethodResultModel methodResultModel = binder.invokeMethod(callModel);
                             if (methodResultModel.getResult() == MethodResultModel.VOID_RESULT
                                     || methodResultModel.getResult() == null) {
@@ -95,13 +101,13 @@ public class InterfaceProxy<T> {
                             if (args.length != 1) {
                                 return getResultByReturnType(method.getReturnType());
                             }
-                            return markCallback(method, args, callTimestamp, false);
+                            return markCallback(method, args, callTimestamp, ipcMethodFlag, false);
                         }
                         case IpcMethodFlag.KEY_LOCAL_CALLBACK_SET: {
                             if (args.length != 1) {
                                 return getResultByReturnType(method.getReturnType());
                             }
-                            return markCallback(method, args, callTimestamp, true);
+                            return markCallback(method, args, callTimestamp, ipcMethodFlag, true);
                         }
                     }
                 }
@@ -112,7 +118,8 @@ public class InterfaceProxy<T> {
     }
 
     @Nullable
-    private Object markCallback(Method method, Object[] args, long callTimestamp, boolean isClearOld)
+    private Object markCallback(Method method, Object[] args, long callTimestamp, IpcMethodFlag ipcMethodFlag,
+            boolean isClearOld)
             throws ClassNotFoundException, RemoteException {
         // 标记设置了哪些回调有监听
 
@@ -131,6 +138,7 @@ public class InterfaceProxy<T> {
         proxyCallbackManager.addCallback(aClass, args[0], isClearOld);
         MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp,
                 argsHashMap, (byte) MethodCallModel.TYPE_ADD_OR_SET_CALLBACK_METHOD, (byte) 1);
+        callModel.setMainThread((byte) ipcMethodFlag.thread());
         MethodResultModel methodResultModel = binder.invokeMethod(callModel);
         if (methodResultModel == null
                 || methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
@@ -242,9 +250,28 @@ public class InterfaceProxy<T> {
             if (method != null) {
                 try {
                     method.setAccessible(true);
+                    if (methodCall.getMainThread() == IpcMethodFlag.THREAD_MAIN) {
+                        CountDownLatch latch = new CountDownLatch(1);
+                        mainHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    Object invoke = method.invoke(outProxy, objArr);
+                                    MethodResultModel resultByInvoke = createResultByInvoke(invoke);
+                                    keyToResultModelMap.put(methodCall.hashCode(), resultByInvoke);
+                                } catch (IllegalAccessException | InvocationTargetException e) {
+                                    e.printStackTrace();
+                                }
+                                latch.countDown();
+                            }
+                        });
+                        latch.await();
+                        MethodResultModel resultModel = keyToResultModelMap.remove(methodCall.hashCode());
+                        return resultModel != null ? resultModel : createResultByInvoke(null);
+                    }
                     Object invoke = method.invoke(outProxy, objArr);
                     return createResultByInvoke(invoke);
-                } catch (IllegalAccessException | InvocationTargetException e) {
+                } catch (IllegalAccessException | InvocationTargetException | InterruptedException e) {
                     LogUtil.exception(TAG, "", e);
                 }
             }

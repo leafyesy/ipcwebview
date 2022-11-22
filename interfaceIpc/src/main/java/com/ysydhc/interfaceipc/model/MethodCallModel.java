@@ -24,6 +24,8 @@ public class MethodCallModel implements Parcelable {
 
     private byte methodType = (byte) 0; // 是否设置回调的方法
 
+    private byte mainThread = (byte) 0; // 是否主线程调用 默认为是
+
     private byte needCallback;
 
     public MethodCallModel(long key, Class<?> clazz, String methodName, long invokeTimestamp,
@@ -35,6 +37,14 @@ public class MethodCallModel implements Parcelable {
         this.needCallback = needCallback;
         this.methodType = methodType;
         this.clazz = clazz;
+    }
+
+    public byte getMainThread() {
+        return mainThread;
+    }
+
+    public void setMainThread(byte mainThread) {
+        this.mainThread = mainThread;
     }
 
     public long getKey() {
@@ -77,6 +87,7 @@ public class MethodCallModel implements Parcelable {
         arguments = in.readHashMap(HashMap.class.getClassLoader());
         methodType = in.readByte();
         clazz = (Class<?>) in.readSerializable();
+        mainThread = in.readByte();
     }
 
     @Override
@@ -88,6 +99,7 @@ public class MethodCallModel implements Parcelable {
         dest.writeMap(arguments);
         dest.writeByte(methodType);
         dest.writeSerializable(clazz);
+        dest.writeByte(mainThread);
     }
 
     @Override

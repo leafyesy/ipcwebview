@@ -19,11 +19,12 @@ public class RemoteService extends Service {
     public void onCreate() {
         super.onCreate();
         // 初始化
+        pool.getManager().setContext(this);
         BinderInitiatorManager.getInstance().notifyInit(pool.getManager());
         // 绑定主进程服务
         IPCInitiator.startMain(this);
         // 启动远程ZygoteActivity
-
+        IPCInitiator.startZygoteActivity(this);
     }
 
     @Nullable
