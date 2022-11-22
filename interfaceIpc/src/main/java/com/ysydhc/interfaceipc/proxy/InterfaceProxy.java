@@ -48,6 +48,10 @@ public class InterfaceProxy<T> {
         this.outProxy = outProxy;
     }
 
+    public T getOutProxy() {
+        return outProxy;
+    }
+
     public void setMethodChannelBinder(IMethodChannelBinder binder) {
         this.binder = binder;
     }
@@ -163,7 +167,8 @@ public class InterfaceProxy<T> {
     }
 
     @Nullable
-    private MethodResultModel invokeMethodAndGetResultModel(MethodCallModel methodCall, Method method, Object... objVar) {
+    private MethodResultModel invokeMethodAndGetResultModel(MethodCallModel methodCall, Method method,
+            Object... objVar) {
         try {
             method.setAccessible(true);
             if (methodCall.getMainThread() == IpcMethodFlag.THREAD_MAIN) {
@@ -254,7 +259,7 @@ public class InterfaceProxy<T> {
                                 argsHashMap, MethodCallModel.TYPE_NORMAL_METHOD_CALL, (byte) 1);
                         callModel.setMainThread((byte) ipcMethodFlag.thread());
                         MethodResultModel methodResultModel = binder.invokeMethod(callModel);
-                        if (methodResultModel.getResult() == MethodResultModel.VOID_RESULT
+                        if (methodResultModel == null || methodResultModel.getResult() == MethodResultModel.VOID_RESULT
                                 || methodResultModel.getResult() == null) {
                             return MethodUtils.getResultByReturnType(method.getReturnType());
                         } else {

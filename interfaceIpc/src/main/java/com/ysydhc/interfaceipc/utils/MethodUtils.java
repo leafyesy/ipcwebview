@@ -52,6 +52,9 @@ public class MethodUtils {
 
     // todo 优化寻找时间
     public static Method findMethod(Class<?> target, String methodName, Class<?>[] classes) {
+        if (target == null) {
+            return null;
+        }
         Method[] declaredMethods = target.getDeclaredMethods();
         for (Method method : declaredMethods) {
             if (TextUtils.equals(method.getName(), methodName)) {
@@ -75,7 +78,7 @@ public class MethodUtils {
                 }
             }
         }
-        return null;
+        return findMethod(target.getSuperclass(), methodName, classes);
     }
 
 

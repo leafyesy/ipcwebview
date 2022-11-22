@@ -9,24 +9,25 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.Display;
 import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.FrameLayout;
-
 import androidx.annotation.CallSuper;
 import androidx.annotation.MainThread;
-
+import androidx.annotation.NonNull;
 import com.ysydhc.commonlib.LogUtil;
-
+import com.ysydhc.remoteview.interfaces.IRemoteView;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-public abstract class BaseRemoteViewPresentation extends Presentation {
+public abstract class BaseRemoteViewPresentation extends Presentation implements IRemoteView {
 
     private static final String TAG = "BaseRemoteViewPresentation";
 
@@ -72,6 +73,21 @@ public abstract class BaseRemoteViewPresentation extends Presentation {
             this.getWindow().setType(WindowManager.LayoutParams.TYPE_PRIVATE_PRESENTATION);
         }
         this.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+    }
+
+    @Override
+    public void release() {
+
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(@NonNull MotionEvent ev) {
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
+        return super.dispatchKeyEvent(event);
     }
 
     @Override

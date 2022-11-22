@@ -9,6 +9,8 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
@@ -124,5 +126,28 @@ public class WebViewImageReaderView extends ProxyRemoteViewContainer implements 
     @Override
     public void createError(String s1, String s2) {
 
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (remoteProxy != null) {
+            return remoteProxy.dispatchTouchEvent(ev);
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (remoteProxy != null) {
+            return remoteProxy.dispatchKeyEvent(event);
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    public void release() {
+        if (remoteProxy != null) {
+            remoteProxy.release();
+        }
     }
 }
