@@ -6,6 +6,7 @@ import android.media.ImageReader;
 import android.media.ImageReader.OnImageAvailableListener;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Parcelable;
 import android.os.RemoteException;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -119,6 +120,13 @@ public class WebViewImageReaderView extends ProxyRemoteViewContainer implements 
     }
 
     @Override
+    public void setJsBridgeListener(JsBridgeListener listener) {
+        if (remoteProxy != null) {
+            remoteProxy.setJsBridgeListener(listener);
+        }
+    }
+
+    @Override
     public void createSuccess() {
 
     }
@@ -126,6 +134,12 @@ public class WebViewImageReaderView extends ProxyRemoteViewContainer implements 
     @Override
     public void createError(String s1, String s2) {
 
+    }
+
+    @Nullable
+    @Override
+    protected Parcelable onSaveInstanceState() {
+        return super.onSaveInstanceState();
     }
 
     @Override

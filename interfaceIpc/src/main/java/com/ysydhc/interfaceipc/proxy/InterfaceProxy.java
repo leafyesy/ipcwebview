@@ -64,28 +64,14 @@ public class InterfaceProxy<T> {
         return (T) instance;
     }
 
-    @Nullable
-    private Object markCallback(Method method, Object[] args, long callTimestamp, IpcMethodFlag ipcMethodFlag,
-            boolean isClearOld)
-            throws ClassNotFoundException, RemoteException {
-        // 标记设置了哪些回调有监听
-        Class<?> aClass = MethodUtils.getClassByObj(args[0]);
-        HashMap<String, Object> argsHashMap = new HashMap<String, Object>();
-        argsHashMap.put(InterfaceIPCConst.IPC_KEY_CALLBACK_CLASS_NAME, aClass.getName());
-        proxyCallbackManager.addCallback(aClass, args[0], isClearOld);
-        MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp,
-                argsHashMap, (byte) MethodCallModel.TYPE_ADD_OR_SET_CALLBACK_METHOD, (byte) 1);
-        callModel.setMainThread((byte) ipcMethodFlag.thread());
-        MethodResultModel methodResultModel = binder.invokeMethod(callModel);
-        if (methodResultModel == null
-                || methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
-            return MethodUtils.getResultByReturnType(method.getReturnType());
-        } else {
-            return methodResultModel.getResult();
+    public MethodResultModel responseRemote(MethodCallModel model) {
+        if (model.getIsCallbackCalled()) {
+            return responseSetCallbackCall(model);
         }
+        return responseRemoteMethodCall(model);
     }
 
-    public MethodResultModel responseCallbackCall(MethodCallModel model) {
+    private MethodResultModel responseSetCallbackCall(MethodCallModel model) {
         if (!model.getIsCallbackCalled()) {
             return MethodResultModel.VOID_RESULT;
         }
@@ -119,7 +105,7 @@ public class InterfaceProxy<T> {
     }
 
 
-    public MethodResultModel responseRemoteMethodCall(MethodCallModel methodCall) {
+    private MethodResultModel responseRemoteMethodCall(MethodCallModel methodCall) {
         if (outProxy == null) {
             return null;
         }
@@ -128,25 +114,26 @@ public class InterfaceProxy<T> {
         if (methodCall.getIsSetCallback()) {
             String clazzName = (String) arguments.get(InterfaceIPCConst.IPC_KEY_CALLBACK_CLASS_NAME);
             if (TextUtils.isEmpty(clazzName)) {
-                LogUtil.e(TAG, "responseRemoteMethodCall clazzName is empty!");
+                LogUtil.e(TAG, "responseRemoteMethodCall clazzName is empty! name=" + methodCall.getMethodName()
+                        + " target ObjClass=" + outProxy.getClass());
                 return null;
             }
             Class<?> clazz = null;
             try {
                 clazz = Class.forName(clazzName);
-                Constructor<?> constructor = clazz.getConstructor();
-                constructor.newInstance();
-            } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+            } catch (ClassNotFoundException e) {
                 LogUtil.exception(TAG, "", e);
             }
             if (clazz == null) {
-                LogUtil.e(TAG, "responseRemoteMethodCall clazz is null!");
+                LogUtil.e(TAG, "responseRemoteMethodCall clazz is null! name=" + methodCall.getMethodName()
+                        + " target ObjClass=" + outProxy.getClass());
                 return null;
             }
             Class<?>[] clazzArr = new Class<?>[]{clazz};
             Method method = MethodUtils.findMethod(outProxy.getClass(), methodCall.getMethodName(), clazzArr);
             if (method == null) {
-                LogUtil.e(TAG, "responseRemoteMethodCall method is null!");
+                LogUtil.e(TAG, "responseRemoteMethodCall method is null - 1! name=" + methodCall.getMethodName()
+                        + " target ObjClass=" + outProxy.getClass());
                 return null;
             }
             method.setAccessible(true);
@@ -159,7 +146,8 @@ public class InterfaceProxy<T> {
             Class<?>[] clazzArr = MethodUtils.getClasses(objArr);
             Method method = MethodUtils.findMethod(outProxy.getClass(), methodCall.getMethodName(), clazzArr);
             if (method == null) {
-                LogUtil.e(TAG, "responseRemoteMethodCall method is null!");
+                LogUtil.e(TAG, "responseRemoteMethodCall method is null - 2! name=" + methodCall.getMethodName()
+                        + " target ObjClass=" + outProxy.getClass());
                 return null;
             }
             return invokeMethodAndGetResultModel(methodCall, method, objArr);
@@ -213,8 +201,8 @@ public class InterfaceProxy<T> {
                 long callTimestamp = System.currentTimeMillis();
                 HashMap<String, Object> argsHashMap = new HashMap<String, Object>();
                 argsHashMap.put(InterfaceIPCConst.IPC_KEY_ARGS, args);
-                MethodCallModel callModel = new MethodCallModel(key, finalClazz, method.getName(),
-                        callTimestamp, argsHashMap, MethodCallModel.TYPE_CALLBACK_METHOD_IS_CALLED, (byte) 1);
+                MethodCallModel callModel = new MethodCallModel(key, finalClazz, method.getName(), callTimestamp,
+                        argsHashMap, MethodCallModel.TYPE_CALLBACK_METHOD_IS_CALLED, (byte) 1);
                 MethodResultModel methodResultModel = binder.invokeMethod(callModel);
                 if (methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
                     return MethodResultModel.VOID_RESULT;
@@ -281,6 +269,25 @@ public class InterfaceProxy<T> {
                 }
             }
             return MethodUtils.getResultByReturnType(method.getReturnType());
+        }
+
+        @Nullable
+        private Object markCallback(Method method, Object[] args, long callTimestamp, IpcMethodFlag ipcMethodFlag,
+                boolean isClearOld) throws RemoteException {
+            Class<?> aClass = method.getParameterTypes()[0];
+            // 标记设置了哪些回调有监听
+            HashMap<String, Object> argsHashMap = new HashMap<String, Object>();
+            argsHashMap.put(InterfaceIPCConst.IPC_KEY_CALLBACK_CLASS_NAME, aClass.getName());
+            proxyCallbackManager.addCallback(aClass, args[0], isClearOld);
+            MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp, argsHashMap,
+                    (byte) MethodCallModel.TYPE_ADD_OR_SET_CALLBACK_METHOD, (byte) 1);
+            callModel.setMainThread((byte) ipcMethodFlag.thread());
+            MethodResultModel methodResultModel = binder.invokeMethod(callModel);
+            if (methodResultModel == null || methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
+                return MethodUtils.getResultByReturnType(method.getReturnType());
+            } else {
+                return methodResultModel.getResult();
+            }
         }
     }
 

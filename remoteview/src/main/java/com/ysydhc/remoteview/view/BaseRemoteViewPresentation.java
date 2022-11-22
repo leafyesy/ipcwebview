@@ -130,9 +130,6 @@ public abstract class BaseRemoteViewPresentation extends Presentation implements
         this.setContentView(this.rootView);
     }
 
-    abstract protected void plugInHub();
-
-    abstract protected void plugOutHub();
 
     @MainThread
     @CallSuper

@@ -2,6 +2,7 @@ package com.ysydhc.interfaceipc.proxy;
 
 import android.os.RemoteException;
 
+import com.ysydhc.commonlib.LogUtil;
 import com.ysydhc.interfaceipc.IMethodChannelBinder;
 import com.ysydhc.interfaceipc.InterfaceIpcHub;
 import com.ysydhc.interfaceipc.model.MethodCallModel;
@@ -15,12 +16,11 @@ public class MethodChannelBinderImpl extends IMethodChannelBinder.Stub {
     public MethodResultModel invokeMethod(MethodCallModel model) throws RemoteException {
         InterfaceProxy<?> wrapper = InterfaceIpcHub.getInstance().fetchCallObject(model.getKey());
         if (wrapper == null) {
+            LogUtil.i(TAG, "invokeMethod not found object! name=" + model.getMethodName()
+                    + " target ObjClass=" + model.getClazz().getName());
             return null;
         }
-        if (model.getIsCallbackCalled()) {
-            return wrapper.responseCallbackCall(model);
-        }
-        return wrapper.responseRemoteMethodCall(model);
+        return wrapper.responseRemote(model);
     }
 
 }

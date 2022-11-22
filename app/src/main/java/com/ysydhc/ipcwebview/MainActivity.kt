@@ -1,12 +1,11 @@
 package com.ysydhc.ipcwebview
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
+import com.ysydhc.commonlib.LogUtil
 import com.ysydhc.ipcwebview.test.ITest
-import com.ysydhc.interfaceipc.IMethodChannelBinder
 import com.ysydhc.interfaceipc.IObjectConnect
 import com.ysydhc.interfaceipc.InterfaceIPCConst
 import com.ysydhc.interfaceipc.InterfaceIpcHub
@@ -26,12 +25,7 @@ class MainActivity : AppCompatActivity() {
     private var interfaceProxy: InterfaceProxy<ITest>? = null
     private var webViewImageReaderView: WebViewImageReaderView? = null
     private var test: ITest? = null
-    private val listener = object : TestListener {
-        override fun onConnect(count: Int): Boolean {
-            Log.i(TAG, "TestListener :$count")
-            return count % 2 == 0
-        }
-    }
+    private var isSetJsBridge: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,11 +38,16 @@ class MainActivity : AppCompatActivity() {
             createRemoteProxy()
         }
         findViewById<View>(R.id.set_callback).setOnClickListener {
-            //test?.setListener(listener)
+            if (!isSetJsBridge) {
+                webViewImageReaderView?.setJsBridgeListener {
+                    LogUtil.i(TAG, "url: $it")
+                    true
+                }
+                //isSetJsBridge = true
+            }
             webViewImageReaderView?.loadUrl("https://www.baidu.com")
         }
         findViewById<View>(R.id.call_remote).setOnClickListener {
-            //callCountPlus()
             if (webViewImageReaderView != null) {
                 return@setOnClickListener
             }
@@ -60,14 +59,9 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun callCountPlus() {
-        val result = test?.countPlus() ?: 0
-        Log.i(TAG, "result:$result")
-    }
-
     private fun createRemoteObjectAndConnect() {
         val connectBinder = RemoteServicePresenter.getInstance()
-                .queryBinderByCode<IObjectConnect>(InterfaceIPCConst.BINDER_CODE_OBJ_CONNECT)
+            .queryBinderByCode<IObjectConnect>(InterfaceIPCConst.BINDER_CODE_OBJ_CONNECT)
         connectBinder.connect(ConnectCell(ITest.KEY_CONNECT))
     }
 

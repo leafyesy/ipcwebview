@@ -2,17 +2,18 @@ package com.ysydhc.remoteweb.view;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-
+import androidx.annotation.Nullable;
 import com.ysydhc.interfaceipc.model.ConnectCell;
 import com.ysydhc.remoteview.interfaces.IPresentationListener;
 import com.ysydhc.remoteview.view.BaseRemoteViewPresentation;
@@ -29,13 +30,13 @@ public class WebViewPresentation extends BaseRemoteViewPresentation implements I
 
     protected PresentationRunningState runningState = PresentationRunningState.Idle;
     protected WebView mOfflineWebView;
+    private JsBridgeListener jsBridgeListener;
 
     public WebViewPresentation(Context outerContext, ConnectCell connectCell,
             Display display, long surfaceId,
             RemoteAccessibilityEventsDelegate accessibilityEventsDelegate) {
         super(outerContext, display, accessibilityEventsDelegate, surfaceId);
         this.connectCell = connectCell;
-        plugInHub();
         //RemoteZygoteActivity.activity.getInputToggleDelegate().registerPresentationListener(this);
     }
 
@@ -53,7 +54,41 @@ public class WebViewPresentation extends BaseRemoteViewPresentation implements I
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setSupportMultipleWindows(true);
+        settings.setUseWideViewPort(true);
+        //设置可以支持缩放
+        settings.setSupportZoom(true);
+        //设置出现缩放工具
+        settings.setBuiltInZoomControls(true);
+        //设定缩放控件隐藏
+        settings.setDisplayZoomControls(false);
+        //最小缩放等级
+        webView.setInitialScale(25);
         webView.setWebViewClient(new WebViewClient() {
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (jsBridgeListener != null) {
+                    if (jsBridgeListener.onBridge(url)) {
+                        return true;
+                    }
+                }
+                return super.shouldOverrideUrlLoading(view, url);
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                return super.shouldOverrideUrlLoading(view, request);
+            }
+
+            @Nullable
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (jsBridgeListener != null) {
+                    jsBridgeListener.onBridge(request.getUrl().toString());
+                }
+                return super.shouldInterceptRequest(view, request);
+            }
+
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
@@ -74,42 +109,20 @@ public class WebViewPresentation extends BaseRemoteViewPresentation implements I
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
+
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
 
             }
         });
-        webView.setBackgroundColor(Color.BLUE);
-//        webView.getView().setBackgroundColor(Color.TRANSPARENT);
-
-//        webView.setJsBridgeListener(new IJsBridgeListener() {
-//            @Override
-//            public void onJsBridge(String cmd, String subcmd, Map<String, String> params) {
-//                LogUtil.i(TAG, "cmd: " + cmd + " subcmd: " + subcmd + " params: " + params);
-//            }
-//        });
         return webView;
     }
 
     @Override
     public void show() {
-//        if (initialParams.getUrl() != null && !initialParams.getUrl().isEmpty()) {
-////            if (getWebView() != null) {
-////                getWebView().loadUrl(initialParams.getUrl());
-////            }
-//        }
         super.show();
     }
 
-    @Override
-    protected void plugInHub() {
-        //RemoteBinderCommHub.getInstance().plugInMethodHandler(viewId, this);
-    }
-
-    @Override
-    protected void plugOutHub() {
-        //RemoteBinderCommHub.getInstance().plugOutMethodHandler(viewId);
-    }
 
     private WebView getWebView() {
         return mOfflineWebView;
@@ -118,7 +131,6 @@ public class WebViewPresentation extends BaseRemoteViewPresentation implements I
     @Override
     public void dispose() {
         //RemoteZygoteActivity.activity.getInputToggleDelegate().removePresentationListener(this);
-        plugOutHub();
         cancel();
         detachState();
         getWebView().destroy();
@@ -145,5 +157,10 @@ public class WebViewPresentation extends BaseRemoteViewPresentation implements I
             return;
         }
         mOfflineWebView.loadUrl(url);
+    }
+
+    @Override
+    public void setJsBridgeListener(JsBridgeListener listener) {
+        this.jsBridgeListener = listener;
     }
 }
