@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
+  <!-- 访问网络. 某些位置信息需要从网络服务器获取 -->
+  <uses-permission android:name="android.permission.INTERNET" />
 </manifest>
