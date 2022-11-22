@@ -8,6 +8,10 @@ public class LogUtil {
         Log.i(tag, message);
     }
 
+    public static void e(String tag, String message) {
+        Log.e(tag, message);
+    }
+
     public static void exception(String tag, String message, Throwable t) {
         Log.e(tag, message, t);
     }

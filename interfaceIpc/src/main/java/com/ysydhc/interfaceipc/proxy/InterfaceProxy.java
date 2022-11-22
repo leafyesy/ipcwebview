@@ -2,21 +2,16 @@ package com.ysydhc.interfaceipc.proxy;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Parcelable;
 import android.os.RemoteException;
 import android.text.TextUtils;
-
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
 import com.ysydhc.commonlib.LogUtil;
 import com.ysydhc.interfaceipc.IMethodChannelBinder;
 import com.ysydhc.interfaceipc.InterfaceIPCConst;
 import com.ysydhc.interfaceipc.annotation.IpcMethodFlag;
 import com.ysydhc.interfaceipc.model.MethodCallModel;
 import com.ysydhc.interfaceipc.model.MethodResultModel;
-
-import java.io.Serializable;
+import com.ysydhc.interfaceipc.utils.MethodUtils;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -27,8 +22,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
-
-import kotlin.Metadata;
 
 public class InterfaceProxy<T> {
 
@@ -63,57 +56,7 @@ public class InterfaceProxy<T> {
             throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
         Class<?> proxyClazz = Proxy.getProxyClass(clazz.getClassLoader(), clazz);
         Constructor<?> proxyConstructor = proxyClazz.getConstructor(InvocationHandler.class);
-        Object instance = proxyConstructor.newInstance(new InvocationHandler() {
-            @Override
-            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                if (key == -1) {
-                    throw new IllegalArgumentException("key is a valid proxy key");
-                }
-                if (binder == null && outProxy == null) {
-                    throw new IllegalStateException("binder and out proxy is both are all null");
-                }
-                if (outProxy != null) {
-                    return method.invoke(outProxy, args);
-                }
-                long callTimestamp = System.currentTimeMillis();
-                methodCallTimestampList.add(callTimestamp);
-                if (binder == null) {
-                    return method.invoke(outProxy, args);
-                }
-                IpcMethodFlag ipcMethodFlag = method.getAnnotation(IpcMethodFlag.class);
-                if (ipcMethodFlag != null) { // 标记为需要跨进程调用的方法
-                    switch (ipcMethodFlag.value()) {
-                        case IpcMethodFlag.KEY_IPC_METHOD: {
-                            HashMap<String, Object> argsHashMap = new HashMap<String, Object>();
-                            argsHashMap.put(InterfaceIPCConst.IPC_KEY_ARGS, args);
-                            MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp,
-                                    argsHashMap, MethodCallModel.TYPE_NORMAL_METHOD_CALL, (byte) 1);
-                            callModel.setMainThread((byte) ipcMethodFlag.thread());
-                            MethodResultModel methodResultModel = binder.invokeMethod(callModel);
-                            if (methodResultModel.getResult() == MethodResultModel.VOID_RESULT
-                                    || methodResultModel.getResult() == null) {
-                                return getResultByReturnType(method.getReturnType());
-                            } else {
-                                return methodResultModel.getResult();
-                            }
-                        }
-                        case IpcMethodFlag.KEY_LOCAL_CALLBACK_ADD: {
-                            if (args.length != 1) {
-                                return getResultByReturnType(method.getReturnType());
-                            }
-                            return markCallback(method, args, callTimestamp, ipcMethodFlag, false);
-                        }
-                        case IpcMethodFlag.KEY_LOCAL_CALLBACK_SET: {
-                            if (args.length != 1) {
-                                return getResultByReturnType(method.getReturnType());
-                            }
-                            return markCallback(method, args, callTimestamp, ipcMethodFlag, true);
-                        }
-                    }
-                }
-                return null;
-            }
-        });
+        Object instance = proxyConstructor.newInstance(new LocalProxyInvocationHandler());
         return (T) instance;
     }
 
@@ -122,17 +65,7 @@ public class InterfaceProxy<T> {
             boolean isClearOld)
             throws ClassNotFoundException, RemoteException {
         // 标记设置了哪些回调有监听
-
-        Metadata annotation = args[0].getClass().getAnnotation(Metadata.class);
-        Class<?> aClass = null;
-        if (annotation != null) {
-            String clazzName = annotation.d2()[1];
-            String realClazzName = clazzName.substring(1, clazzName.length() - 1).replace("/", ".");
-            aClass = Class.forName(realClazzName);
-        }
-        if (aClass == null) {
-            aClass = args[0].getClass();
-        }
+        Class<?> aClass = MethodUtils.getClassByObj(args[0]);
         HashMap<String, Object> argsHashMap = new HashMap<String, Object>();
         argsHashMap.put(InterfaceIPCConst.IPC_KEY_CALLBACK_CLASS_NAME, aClass.getName());
         proxyCallbackManager.addCallback(aClass, args[0], isClearOld);
@@ -142,7 +75,7 @@ public class InterfaceProxy<T> {
         MethodResultModel methodResultModel = binder.invokeMethod(callModel);
         if (methodResultModel == null
                 || methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
-            return getResultByReturnType(method.getReturnType());
+            return MethodUtils.getResultByReturnType(method.getReturnType());
         } else {
             return methodResultModel.getResult();
         }
@@ -160,26 +93,107 @@ public class InterfaceProxy<T> {
             Class<?>[] classes = null;
             if (arguments != null) {
                 objArr = (Object[]) arguments.get(InterfaceIPCConst.IPC_KEY_ARGS);
-                classes = getClasses(objArr);
+                classes = MethodUtils.getClasses(objArr);
             }
-            Method method = findMethod(model.getClazz(), model.getMethodName(), classes);
-            method.setAccessible(true);
-            for (int i = 0; i < callbackList.size(); i++) {
-                Object o = callbackList.get(i);
-                try {
-                    Object invoke = method.invoke(o, objArr);
-                    if (methodResultModel == MethodResultModel.VOID_RESULT) {
-                        methodResultModel = createResultByInvoke(invoke);
+            Method method = MethodUtils.findMethod(model.getClazz(), model.getMethodName(), classes);
+            if (method != null) {
+                method.setAccessible(true);
+                for (int i = 0; i < callbackList.size(); i++) {
+                    Object o = callbackList.get(i);
+                    try {
+                        Object invoke = method.invoke(o, objArr);
+                        if (methodResultModel == MethodResultModel.VOID_RESULT) {
+                            methodResultModel = MethodUtils.createResultByInvoke(invoke);
+                        }
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+                        LogUtil.exception(TAG, "", e);
                     }
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    LogUtil.exception(TAG, "", e);
                 }
             }
         }
         return methodResultModel;
     }
 
-    class CallbackInvocationHandler implements InvocationHandler {
+
+    public MethodResultModel responseRemoteMethodCall(MethodCallModel methodCall) {
+        if (outProxy == null) {
+            return null;
+        }
+        LogUtil.i(TAG, "responseRemoteMethodCall" + methodCall.toString());
+        HashMap<String, Object> arguments = methodCall.getArguments();
+        if (methodCall.getIsSetCallback()) {
+            String clazzName = (String) arguments.get(InterfaceIPCConst.IPC_KEY_CALLBACK_CLASS_NAME);
+            if (TextUtils.isEmpty(clazzName)) {
+                LogUtil.e(TAG, "responseRemoteMethodCall clazzName is empty!");
+                return null;
+            }
+            Class<?> clazz = null;
+            try {
+                clazz = Class.forName(clazzName);
+                Constructor<?> constructor = clazz.getConstructor();
+                constructor.newInstance();
+            } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+                LogUtil.exception(TAG, "", e);
+            }
+            if (clazz == null) {
+                LogUtil.e(TAG, "responseRemoteMethodCall clazz is null!");
+                return null;
+            }
+            Class<?>[] clazzArr = new Class<?>[]{clazz};
+            Method method = MethodUtils.findMethod(outProxy.getClass(), methodCall.getMethodName(), clazzArr);
+            if (method == null) {
+                LogUtil.e(TAG, "responseRemoteMethodCall method is null!");
+                return null;
+            }
+            method.setAccessible(true);
+            Class<?> finalClazz = clazz;
+            Object callbackProxyObj = Proxy.newProxyInstance(clazz.getClassLoader(), new Class[]{clazz},
+                    new CallbackInvocationHandler(finalClazz));
+            return invokeMethodAndGetResultModel(methodCall, method, callbackProxyObj);
+        } else {
+            Object[] objArr = (Object[]) arguments.get(InterfaceIPCConst.IPC_KEY_ARGS);
+            Class<?>[] clazzArr = MethodUtils.getClasses(objArr);
+            Method method = MethodUtils.findMethod(outProxy.getClass(), methodCall.getMethodName(), clazzArr);
+            if (method == null) {
+                LogUtil.e(TAG, "responseRemoteMethodCall method is null!");
+                return null;
+            }
+            return invokeMethodAndGetResultModel(methodCall, method, objArr);
+        }
+    }
+
+    @Nullable
+    private MethodResultModel invokeMethodAndGetResultModel(MethodCallModel methodCall, Method method, Object... objVar) {
+        try {
+            method.setAccessible(true);
+            if (methodCall.getMainThread() == IpcMethodFlag.THREAD_MAIN) {
+                CountDownLatch latch = new CountDownLatch(1);
+                mainHandler.post(() -> {
+                    try {
+                        Object invoke = method.invoke(outProxy, objVar);
+                        MethodResultModel resultByInvoke = MethodUtils.createResultByInvoke(invoke);
+                        keyToResultModelMap.put(methodCall.hashCode(), resultByInvoke);
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+                        e.printStackTrace();
+                    }
+                    latch.countDown();
+                });
+                latch.await();
+                MethodResultModel resultModel = keyToResultModelMap.remove(methodCall.hashCode());
+                return resultModel != null ? resultModel : MethodUtils.createResultByInvoke(null);
+            }
+            Object invoke = method.invoke(outProxy, objVar);
+            return MethodUtils.createResultByInvoke(invoke);
+        } catch (IllegalAccessException | InvocationTargetException | InterruptedException e) {
+            LogUtil.exception(TAG, "", e);
+        }
+        return null;
+    }
+
+    /**
+     * 回调接口的跨进程通讯响应
+     */
+    private class CallbackInvocationHandler implements InvocationHandler {
 
         private final Class<?> finalClazz;
 
@@ -195,8 +209,7 @@ public class InterfaceProxy<T> {
                 HashMap<String, Object> argsHashMap = new HashMap<String, Object>();
                 argsHashMap.put(InterfaceIPCConst.IPC_KEY_ARGS, args);
                 MethodCallModel callModel = new MethodCallModel(key, finalClazz, method.getName(),
-                        callTimestamp,
-                        argsHashMap, MethodCallModel.TYPE_CALLBACK_METHOD_IS_CALLED, (byte) 1);
+                        callTimestamp, argsHashMap, MethodCallModel.TYPE_CALLBACK_METHOD_IS_CALLED, (byte) 1);
                 MethodResultModel methodResultModel = binder.invokeMethod(callModel);
                 if (methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
                     return MethodResultModel.VOID_RESULT;
@@ -205,174 +218,65 @@ public class InterfaceProxy<T> {
                 }
             }
             Class<?> returnType = method.getReturnType();
-            return getResultByReturnType(returnType);
+            return MethodUtils.getResultByReturnType(returnType);
         }
     }
 
-    public MethodResultModel innerCallMethod(MethodCallModel methodCall) {
-        if (outProxy == null) {
-            return null;
-        }
-        LogUtil.i(TAG, "innerCallMethod" + methodCall.toString());
-        HashMap arguments = methodCall.getArguments();
-        if (methodCall.getIsSetCallback()) {
-            String clazzName = (String) arguments.get(InterfaceIPCConst.IPC_KEY_CALLBACK_CLASS_NAME);
-            Class<?> clazz = null;
-            try {
-                clazz = Class.forName(clazzName);
-                Constructor<?> constructor = clazz.getConstructor();
-                constructor.newInstance();
-            } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
-                LogUtil.exception(TAG, "", e);
+    /**
+     * 本地接口代理
+     * 自动转发给另一个进程
+     */
+    private class LocalProxyInvocationHandler implements InvocationHandler {
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if (key == -1) {
+                throw new IllegalArgumentException("key is a valid proxy key");
             }
-            if (clazz == null) {
-                return null;
+            if (binder == null && outProxy == null) {
+                throw new IllegalStateException("binder and out proxy is both are all null");
             }
-            Class<?>[] clazzArr = new Class<?>[]{clazz};
-            Method method = findMethod(outProxy.getClass(), methodCall.getMethodName(), clazzArr);
-            if (method == null) {
-                return null;
+            if (outProxy != null) {
+                return method.invoke(outProxy, args);
             }
-            method.setAccessible(true);
-            try {
-                Class<?> finalClazz = clazz;
-                Object callbackProxyObj = Proxy.newProxyInstance(clazz.getClassLoader(), new Class[]{clazz},
-                        new CallbackInvocationHandler(finalClazz));
-                Object invoke = method.invoke(outProxy, callbackProxyObj);
-                return createResultByInvoke(invoke);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                LogUtil.exception(TAG, "", e);
+            long callTimestamp = System.currentTimeMillis();
+            methodCallTimestampList.add(callTimestamp);
+            if (binder == null) {
+                return method.invoke(outProxy, args);
             }
-        } else {
-            Object[] objArr = (Object[]) arguments.get(InterfaceIPCConst.IPC_KEY_ARGS);
-            Class<?>[] clazzArr = getClasses(objArr);
-            Method method = findMethod(outProxy.getClass(), methodCall.getMethodName(), clazzArr);
-            if (method != null) {
-                try {
-                    method.setAccessible(true);
-                    if (methodCall.getMainThread() == IpcMethodFlag.THREAD_MAIN) {
-                        CountDownLatch latch = new CountDownLatch(1);
-                        mainHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    Object invoke = method.invoke(outProxy, objArr);
-                                    MethodResultModel resultByInvoke = createResultByInvoke(invoke);
-                                    keyToResultModelMap.put(methodCall.hashCode(), resultByInvoke);
-                                } catch (IllegalAccessException | InvocationTargetException e) {
-                                    e.printStackTrace();
-                                }
-                                latch.countDown();
-                            }
-                        });
-                        latch.await();
-                        MethodResultModel resultModel = keyToResultModelMap.remove(methodCall.hashCode());
-                        return resultModel != null ? resultModel : createResultByInvoke(null);
+            IpcMethodFlag ipcMethodFlag = method.getAnnotation(IpcMethodFlag.class);
+            if (ipcMethodFlag != null) { // 标记为需要跨进程调用的方法
+                switch (ipcMethodFlag.value()) {
+                    case IpcMethodFlag.KEY_IPC_METHOD: {
+                        HashMap<String, Object> argsHashMap = new HashMap<String, Object>();
+                        argsHashMap.put(InterfaceIPCConst.IPC_KEY_ARGS, args);
+                        MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp,
+                                argsHashMap, MethodCallModel.TYPE_NORMAL_METHOD_CALL, (byte) 1);
+                        callModel.setMainThread((byte) ipcMethodFlag.thread());
+                        MethodResultModel methodResultModel = binder.invokeMethod(callModel);
+                        if (methodResultModel.getResult() == MethodResultModel.VOID_RESULT
+                                || methodResultModel.getResult() == null) {
+                            return MethodUtils.getResultByReturnType(method.getReturnType());
+                        } else {
+                            return methodResultModel.getResult();
+                        }
                     }
-                    Object invoke = method.invoke(outProxy, objArr);
-                    return createResultByInvoke(invoke);
-                } catch (IllegalAccessException | InvocationTargetException | InterruptedException e) {
-                    LogUtil.exception(TAG, "", e);
-                }
-            }
-        }
-        return MethodResultModel.VOID_RESULT;
-    }
-
-    @NonNull
-    private MethodResultModel createResultByInvoke(Object invoke) {
-        if (invoke instanceof Parcelable) {
-            return new MethodResultModel((Parcelable) invoke);
-        } else if (invoke instanceof Serializable) {
-            return new MethodResultModel((Serializable) invoke);
-        } else {
-            return MethodResultModel.VOID_RESULT;
-        }
-    }
-
-    @Nullable
-    private Class<?>[] getClasses(Object[] objArr) {
-        Class<?>[] clazzArr = null;
-        if (objArr != null) {
-            clazzArr = new Class[objArr.length];
-            for (int i = 0; i < objArr.length; i++) {
-                clazzArr[i] = objArr[i].getClass();
-            }
-        }
-        return clazzArr;
-    }
-
-    // todo 优化寻找时间
-    private static Method findMethod(Class<?> target, String methodName, Class<?>[] classes) {
-        Method[] declaredMethods = target.getDeclaredMethods();
-        for (Method method : declaredMethods) {
-            if (TextUtils.equals(method.getName(), methodName)) {
-                if (classes == null) {
-                    return method;
-                }
-                Class<?>[] parameterTypes = method.getParameterTypes();
-                if (parameterTypes.length != classes.length) {
-                    continue;
-                }
-                // 对比每个参数的类型
-                boolean isAllEqual = true;
-                for (int j = 0; j < parameterTypes.length; j++) {
-                    if (parameterTypes[j] != classes[j] && !dataTypeEquals(parameterTypes[j], classes[j])) {
-                        isAllEqual = false;
-                        break;
+                    case IpcMethodFlag.KEY_LOCAL_CALLBACK_ADD: {
+                        if (args.length != 1) {
+                            return MethodUtils.getResultByReturnType(method.getReturnType());
+                        }
+                        return markCallback(method, args, callTimestamp, ipcMethodFlag, false);
+                    }
+                    case IpcMethodFlag.KEY_LOCAL_CALLBACK_SET: {
+                        if (args.length != 1) {
+                            return MethodUtils.getResultByReturnType(method.getReturnType());
+                        }
+                        return markCallback(method, args, callTimestamp, ipcMethodFlag, true);
                     }
                 }
-                if (isAllEqual) {
-                    return method;
-                }
             }
+            return MethodUtils.getResultByReturnType(method.getReturnType());
         }
-        return null;
-    }
-
-    private static boolean dataTypeEquals(Class<?> c1, Class<?> c2) {
-        if (c1 == int.class && c2 == Integer.class || c1 == Integer.class && c2 == int.class) {
-            return true;
-        }
-        if (c1 == byte.class && c2 == Byte.class || c1 == Byte.class && c2 == byte.class) {
-            return true;
-        }
-        if (c1 == short.class && c2 == Short.class || c1 == Short.class && c2 == short.class) {
-            return true;
-        }
-        if (c1 == float.class && c2 == Float.class || c1 == Float.class && c2 == float.class) {
-            return true;
-        }
-        if (c1 == long.class && c2 == Long.class || c1 == Long.class && c2 == long.class) {
-            return true;
-        }
-        if (c1 == boolean.class && c2 == Boolean.class || c1 == Boolean.class && c2 == boolean.class) {
-            return true;
-        }
-        return false;
-    }
-
-    @Nullable
-    private Object getResultByReturnType(Class<?> returnType) {
-        if (returnType == byte.class || returnType == Byte.class) {
-            return (byte) 0;
-        }
-        if (returnType == boolean.class || returnType == Boolean.class) {
-            return false;
-        }
-        if (returnType == short.class || returnType == Short.class) {
-            return 0;
-        }
-        if (returnType == int.class || returnType == Integer.class) {
-            return 0;
-        }
-        if (returnType == float.class || returnType == Float.class) {
-            return 0F;
-        }
-        if (returnType == long.class || returnType == Long.class) {
-            return 0;
-        }
-        return null;
     }
 
 

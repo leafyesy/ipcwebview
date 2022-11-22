@@ -20,7 +20,7 @@ public class MethodChannelBinderImpl extends IMethodChannelBinder.Stub {
         if (model.getIsCallbackCalled()) {
             return wrapper.responseCallbackCall(model);
         }
-        return wrapper.innerCallMethod(model);
+        return wrapper.responseRemoteMethodCall(model);
     }
 
 }
