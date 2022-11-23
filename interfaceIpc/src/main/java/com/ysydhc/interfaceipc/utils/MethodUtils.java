@@ -82,26 +82,32 @@ public class MethodUtils {
     }
 
 
-    public static boolean dataTypeEquals(Class<?> c1, Class<?> c2) {
-        if (c1 == int.class && c2 == Integer.class || c1 == Integer.class && c2 == int.class) {
+    public static boolean dataTypeEquals(Class<?> methodParamClazz, Class<?> realParamClazz) {
+        if (methodParamClazz == int.class && realParamClazz == Integer.class
+                || methodParamClazz == Integer.class && realParamClazz == int.class) {
             return true;
         }
-        if (c1 == byte.class && c2 == Byte.class || c1 == Byte.class && c2 == byte.class) {
+        if (methodParamClazz == byte.class && realParamClazz == Byte.class
+                || methodParamClazz == Byte.class && realParamClazz == byte.class) {
             return true;
         }
-        if (c1 == short.class && c2 == Short.class || c1 == Short.class && c2 == short.class) {
+        if (methodParamClazz == short.class && realParamClazz == Short.class
+                || methodParamClazz == Short.class && realParamClazz == short.class) {
             return true;
         }
-        if (c1 == float.class && c2 == Float.class || c1 == Float.class && c2 == float.class) {
+        if (methodParamClazz == float.class && realParamClazz == Float.class
+                || methodParamClazz == Float.class && realParamClazz == float.class) {
             return true;
         }
-        if (c1 == long.class && c2 == Long.class || c1 == Long.class && c2 == long.class) {
+        if (methodParamClazz == long.class && realParamClazz == Long.class
+                || methodParamClazz == Long.class && realParamClazz == long.class) {
             return true;
         }
-        if (c1 == boolean.class && c2 == Boolean.class || c1 == Boolean.class && c2 == boolean.class) {
+        if (methodParamClazz == boolean.class && realParamClazz == Boolean.class
+                || methodParamClazz == Boolean.class && realParamClazz == boolean.class) {
             return true;
         }
-        return false;
+        return methodParamClazz.isAssignableFrom(realParamClazz);
     }
 
     @Nullable
