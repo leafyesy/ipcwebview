@@ -5,7 +5,7 @@ import com.ysydhc.remoteview.interfaces.IRemoteView;
 
 public interface IRemoteWebView extends IRemoteView {
 
-    @IpcMethodFlag
+    @IpcMethodFlag(synchronous = IpcMethodFlag.ASYNCHRONOUS)
     void loadUrl(String url);
 
 

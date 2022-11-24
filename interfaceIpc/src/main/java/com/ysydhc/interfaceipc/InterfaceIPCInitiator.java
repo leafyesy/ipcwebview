@@ -1,7 +1,6 @@
 package com.ysydhc.interfaceipc;
 
 import android.os.IBinder;
-
 import com.ysydhc.interfaceipc.proxy.MethodChannelBinderImpl;
 import com.ysydhc.ipcscaffold.BinderCode2Class;
 import com.ysydhc.ipcscaffold.IBinderProvider;
@@ -26,7 +25,7 @@ public class InterfaceIPCInitiator implements IIPCInitiatorTask {
 
             @Override
             public IBinder binderProvider() {
-                return InterfaceIpcHub.getInstance().getObjectConnectBinder();
+                return (IBinder)InterfaceIpcHub.getInstance().getObjectConnectBinder();
             }
         });
 
@@ -42,7 +41,7 @@ public class InterfaceIPCInitiator implements IIPCInitiatorTask {
             @Override
             public IBinder binderProvider() {
                 if (binder == null) {
-                    binder = new MethodChannelBinderImpl();
+                    binder = (IBinder) new MethodChannelBinderImpl();
                 }
                 return binder;
             }

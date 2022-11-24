@@ -1,6 +1,5 @@
 package com.ysydhc.ipcwebview.test
 
-import com.ysydhc.interfaceipc.annotation.CallbackParam
 import com.ysydhc.interfaceipc.annotation.IpcMethodFlag
 
 interface ITest {
@@ -13,7 +12,7 @@ interface ITest {
     fun countPlus(): Int
 
     @IpcMethodFlag(IpcMethodFlag.KEY_LOCAL_CALLBACK_SET)
-    fun setListener(@CallbackParam listener: TestListener)
+    fun setListener(listener: TestListener)
 
 }
 

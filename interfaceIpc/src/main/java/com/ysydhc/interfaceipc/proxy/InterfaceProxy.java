@@ -203,6 +203,15 @@ public class InterfaceProxy<T> {
                 argsHashMap.put(InterfaceIPCConst.IPC_KEY_ARGS, args);
                 MethodCallModel callModel = new MethodCallModel(key, finalClazz, method.getName(), callTimestamp,
                         argsHashMap, MethodCallModel.TYPE_CALLBACK_METHOD_IS_CALLED, (byte) 1);
+                IpcMethodFlag ipcMethodFlag = method.getAnnotation(IpcMethodFlag.class);
+                if (ipcMethodFlag != null) {
+                    if (ipcMethodFlag.synchronous() == IpcMethodFlag.ASYNCHRONOUS) {
+                        checkAsyncMethodReturnType(method);
+                        binder.invokeMethodAsync(callModel);
+                        return MethodUtils.getResultByReturnType(method.getReturnType());
+                    }
+                }
+
                 MethodResultModel methodResultModel = binder.invokeMethod(callModel);
                 if (methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
                     return MethodResultModel.VOID_RESULT;
@@ -210,8 +219,15 @@ public class InterfaceProxy<T> {
                     return methodResultModel.getResult();
                 }
             }
-            Class<?> returnType = method.getReturnType();
-            return MethodUtils.getResultByReturnType(returnType);
+            return MethodUtils.getResultByReturnType(method.getReturnType());
+        }
+    }
+
+    private void checkAsyncMethodReturnType(Method method) {
+        if (method.getReturnType() != void.class && method.getReturnType() != void.class) {
+            throw new IllegalStateException(
+                    "async method (" + method.getName() + ") is a concrete return type "
+                            + method.getReturnType().getName());
         }
     }
 
@@ -246,6 +262,11 @@ public class InterfaceProxy<T> {
                         MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp,
                                 argsHashMap, MethodCallModel.TYPE_NORMAL_METHOD_CALL, (byte) 1);
                         callModel.setMainThread((byte) ipcMethodFlag.thread());
+                        if (ipcMethodFlag.synchronous() == IpcMethodFlag.ASYNCHRONOUS) {
+                            checkAsyncMethodReturnType(method);
+                            binder.invokeMethodAsync(callModel);
+                            return MethodUtils.getResultByReturnType(method.getReturnType());
+                        }
                         MethodResultModel methodResultModel = binder.invokeMethod(callModel);
                         if (methodResultModel == null || methodResultModel.getResult() == MethodResultModel.VOID_RESULT
                                 || methodResultModel.getResult() == null) {
@@ -266,6 +287,13 @@ public class InterfaceProxy<T> {
                         }
                         return markCallback(method, args, callTimestamp, ipcMethodFlag, true);
                     }
+                    case IpcMethodFlag.KEY_LOCAL_CALLBACK_REMOVE: {
+                        if (args.length != 1) {
+                            return MethodUtils.getResultByReturnType(method.getReturnType());
+                        }
+                        Class<?> aClass = method.getParameterTypes()[0];
+                        proxyCallbackManager.removeCallback(aClass, args[0]);
+                    }
                 }
             }
             return MethodUtils.getResultByReturnType(method.getReturnType());
@@ -282,6 +310,11 @@ public class InterfaceProxy<T> {
             MethodCallModel callModel = new MethodCallModel(key, clazz, method.getName(), callTimestamp, argsHashMap,
                     (byte) MethodCallModel.TYPE_ADD_OR_SET_CALLBACK_METHOD, (byte) 1);
             callModel.setMainThread((byte) ipcMethodFlag.thread());
+            if (ipcMethodFlag.synchronous() == IpcMethodFlag.ASYNCHRONOUS) {
+                checkAsyncMethodReturnType(method);
+                binder.invokeMethodAsync(callModel);
+                return MethodUtils.getResultByReturnType(method.getReturnType());
+            }
             MethodResultModel methodResultModel = binder.invokeMethod(callModel);
             if (methodResultModel == null || methodResultModel.getResult() == MethodResultModel.VOID_RESULT) {
                 return MethodUtils.getResultByReturnType(method.getReturnType());

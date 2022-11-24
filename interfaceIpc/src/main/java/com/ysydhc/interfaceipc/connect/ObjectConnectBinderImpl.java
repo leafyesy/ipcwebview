@@ -25,4 +25,9 @@ public class ObjectConnectBinderImpl extends IObjectConnect.Stub {
         }
         return false;
     }
+
+    @Override
+    public boolean dispose(long key) throws RemoteException {
+        return InterfaceIpcHub.getInstance().removeIpcImpl(key);
+    }
 }

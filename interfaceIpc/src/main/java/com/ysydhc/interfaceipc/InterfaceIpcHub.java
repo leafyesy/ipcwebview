@@ -59,6 +59,12 @@ public class InterfaceIpcHub {
         return keyToIpcImplMap.get(key);
     }
 
+    public boolean removeIpcImpl(long key) {
+        synchronized (this) {
+            return keyToIpcImplMap.remove(key) != null;
+        }
+    }
+
     public void bindBinderPool(ProcessServicePresenter presenter) {
         this.presenter = presenter;
         if (presenter == null) {

@@ -6,12 +6,12 @@ import com.ysydhc.interfaceipc.annotation.IpcMethodFlag;
 
 public interface IRemoteView {
 
-    @IpcMethodFlag
+    @IpcMethodFlag()
     void release();
 
-    @IpcMethodFlag
+    @IpcMethodFlag()
     boolean dispatchTouchEvent(MotionEvent event);
 
-    @IpcMethodFlag
+    @IpcMethodFlag()
     boolean dispatchKeyEvent(KeyEvent keyEvent);
 }

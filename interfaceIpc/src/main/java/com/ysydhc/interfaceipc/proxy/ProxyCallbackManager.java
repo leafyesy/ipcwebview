@@ -28,10 +28,13 @@ public class ProxyCallbackManager {
         callbackListCacheMap.put(clazz, list);
     }
 
-    public void removeCallback(Object callback) {
-        List<Object> list = callbackListCacheMap.get(callback.getClass());
+    public void removeCallback(Class<?> clazz, Object callback) {
+        List<Object> list = callbackListCacheMap.get(clazz);
         if (list != null) {
             list.remove(callback);
+            if (list.size() == 0) {
+                callbackListCacheMap.remove(clazz);
+            }
         }
     }
 

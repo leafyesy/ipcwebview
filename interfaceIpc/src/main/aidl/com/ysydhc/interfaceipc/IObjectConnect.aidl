@@ -7,4 +7,6 @@ interface IObjectConnect {
 
     boolean connect(in ConnectCell cell);
 
+    boolean dispose(long key);
+
 }

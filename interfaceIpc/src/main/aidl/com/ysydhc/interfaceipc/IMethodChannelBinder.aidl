@@ -8,4 +8,6 @@ interface IMethodChannelBinder {
 
     MethodResultModel invokeMethod(in MethodCallModel model);
 
+    oneway void invokeMethodAsync(in MethodCallModel model);
+
 }
