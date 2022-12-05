@@ -12,8 +12,8 @@
       android:layout_height="wrap_content" />
 
   <Button
-      android:id="@+id/create_remote"
-      android:text="创建远程对象"
+      android:id="@+id/create_remote_webview"
+      android:text="创建远程WebView"
       android:layout_width="match_parent"
       android:layout_height="wrap_content" />
 
@@ -24,8 +24,8 @@
       android:layout_height="wrap_content" />
 
   <Button
-      android:id="@+id/call_remote"
-      android:text="调用远程方法"
+      android:id="@+id/load_url"
+      android:text="加载URL"
       android:layout_width="match_parent"
       android:layout_height="wrap_content" />
 
