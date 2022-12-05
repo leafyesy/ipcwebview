@@ -31,11 +31,13 @@ public class WebViewPresentation extends BaseRemoteViewPresentation implements I
     protected PresentationRunningState runningState = PresentationRunningState.Idle;
     protected WebView mOfflineWebView;
     private JsBridgeListener jsBridgeListener;
+    private Context outContext;
 
     public WebViewPresentation(Context outerContext, ConnectCell connectCell,
             Display display, long surfaceId,
             RemoteAccessibilityEventsDelegate accessibilityEventsDelegate) {
         super(outerContext, display, accessibilityEventsDelegate, surfaceId);
+        this.outContext = outerContext;
         this.connectCell = connectCell;
         //RemoteZygoteActivity.activity.getInputToggleDelegate().registerPresentationListener(this);
     }
@@ -47,7 +49,7 @@ public class WebViewPresentation extends BaseRemoteViewPresentation implements I
     }
 
     protected WebView createTestWebView(View containerView) {
-        WebView webView = new WebView(containerView.getContext());
+        WebView webView = new CustomWebView(outContext); // 必须使用外部的context,因为需要代理getSystemService方法
         //todo update web view init params  see -> WebViewCreationParamsModel
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);

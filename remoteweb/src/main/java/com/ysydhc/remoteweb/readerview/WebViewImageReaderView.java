@@ -14,6 +14,9 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
 
+import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -156,6 +159,16 @@ public class WebViewImageReaderView extends ProxyRemoteViewContainer implements 
             return remoteProxy.dispatchKeyEvent(event);
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+        return super.onCreateInputConnection(outAttrs);
+    }
+
+    @Override
+    public boolean checkInputConnectionProxy(View view) {
+        return super.checkInputConnectionProxy(view);
     }
 
     @Override

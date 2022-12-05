@@ -24,4 +24,15 @@ public class LogUtil {
         Log.e("exception", "", t);
     }
 
+    public static void logStackTree(String tag, StackTraceElement[] stackTraceElements) {
+        for (int i = 0; i < stackTraceElements.length; i++) {
+            Log.d(tag,
+                    "getClassName   " + stackTraceElements[i].getClassName() + '\n' +
+                            "getFileName   " + stackTraceElements[i].getFileName() + '\n' +
+                            "getMethodName   " + stackTraceElements[i].getMethodName() + '\n' +
+                            "getLineNumber   " + stackTraceElements[i].getLineNumber() + '\n'
+            );
+        }
+    }
+
 }
