@@ -1,31 +1,45 @@
-package com.ysydhc.remoteweb.readerview;
+package com.ysydhc.remoteview.view;
 
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import com.ysydhc.remoteview.interfaces.IRemoteView;
 
-public class ProxyRemoteViewContainer extends FrameLayout {
+public abstract class ProxyRemoteViewContainer extends FrameLayout implements IRemoteView {
+
+    private final EditTextViewProxy editTextViewProxy = new EditTextViewProxy(this.getContext());
+    private InputListener inputListener;
+    TouchListener listener;
+    private float lastX = 0;
+    private float lastY = 0;
 
     public ProxyRemoteViewContainer(@NonNull Context context) {
         super(context);
+        initEditTextViewProxy();
     }
 
     public ProxyRemoteViewContainer(@NonNull Context context,
             @Nullable AttributeSet attrs) {
         super(context, attrs);
+        initEditTextViewProxy();
     }
 
     public ProxyRemoteViewContainer(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        initEditTextViewProxy();
     }
 
-    TouchListener listener;
-    private float lastX = 0;
-    private float lastY = 0;
+    private void initEditTextViewProxy() {
+        addView(editTextViewProxy, new LayoutParams(1, 1));
+        editTextViewProxy.setRemoteView(this);
+        editTextViewProxy.setVisibility(View.INVISIBLE);
+    }
 
     public void setListener(TouchListener listener) {
         this.listener = listener;
@@ -77,6 +91,36 @@ public class ProxyRemoteViewContainer extends FrameLayout {
             }
         }
         return super.onTouchEvent(event);
+    }
+
+    @Override
+    public void showInput() {
+        postDelayed(() -> {
+            editTextViewProxy.setVisibility(View.VISIBLE);
+            editTextViewProxy.requestFocus();
+            InputMethodManager input = (InputMethodManager) getContext().getApplicationContext()
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
+            input.showSoftInput(editTextViewProxy, InputMethodManager.SHOW_FORCED);
+            setRemoteViewInputListener((text, index) -> post(new Runnable() {
+                @Override
+                public void run() {
+                    editTextViewProxy.setText(text);
+                    editTextViewProxy.setSelection(index);
+                }
+            }));
+        }, 1);
+    }
+
+    @Override
+    public void hideInput() {
+        postDelayed(() -> {
+            editTextViewProxy.setVisibility(View.INVISIBLE);
+            editTextViewProxy.clearFocus();
+            InputMethodManager input = (InputMethodManager) getContext().getApplicationContext()
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
+            input.hideSoftInputFromWindow(editTextViewProxy.getWindowToken(), InputMethodManager.SHOW_FORCED);
+            setRemoteViewInputListener(null);
+        }, 1);
     }
 
     public interface TouchListener {

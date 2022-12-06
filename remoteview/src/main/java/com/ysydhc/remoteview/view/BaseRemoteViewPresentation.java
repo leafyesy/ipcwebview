@@ -1,5 +1,7 @@
 package com.ysydhc.remoteview.view;
 
+import static android.content.Context.INPUT_METHOD_SERVICE;
+
 import android.app.Presentation;
 import android.content.Context;
 import android.graphics.Color;
@@ -7,6 +9,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -16,18 +19,24 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import android.widget.FrameLayout;
 import androidx.annotation.CallSuper;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import com.ysydhc.commonlib.LogUtil;
+import com.ysydhc.interfaceipc.InterfaceIpcHub;
+import com.ysydhc.interfaceipc.proxy.InterfaceProxy;
+import com.ysydhc.ipcscaffold.ZygoteActivity;
+import com.ysydhc.remoteview.interfaces.IPresentationListener;
 import com.ysydhc.remoteview.interfaces.IRemoteView;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-public abstract class BaseRemoteViewPresentation extends Presentation implements IRemoteView {
+public abstract class BaseRemoteViewPresentation extends Presentation implements IRemoteView, IPresentationListener {
 
     private static final String TAG = "BaseRemoteViewPresentation";
 
@@ -37,6 +46,11 @@ public abstract class BaseRemoteViewPresentation extends Presentation implements
     private BaseRemoteViewPresentation.AccessibilityDelegatingFrameLayout rootView;
     private final RemoteAccessibilityEventsDelegate accessibilityEventsDelegate;
     private boolean startFocused = false;
+    private IRemoteView remoteProxy;
+    protected PresentationRunningState runningState = PresentationRunningState.Idle;
+
+    private InputToggleDelegate inputToggleDelegate = new InputToggleDelegate();
+    private InputListener inputListener;
 
     private final View.OnFocusChangeListener focusChangeListener = new View.OnFocusChangeListener() {
         @Override
@@ -60,12 +74,12 @@ public abstract class BaseRemoteViewPresentation extends Presentation implements
         this.viewId = viewId;
         this.state = new PresentationState();
         this.accessibilityEventsDelegate = accessibilityEventsDelegate;
-        init();
+        init(outerContext);
     }
 
     protected abstract View getContentView(ViewGroup container);
 
-    private void init() {
+    private void init(Context context) {
         this.getWindow().setFlags(
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
@@ -73,6 +87,57 @@ public abstract class BaseRemoteViewPresentation extends Presentation implements
             this.getWindow().setType(WindowManager.LayoutParams.TYPE_PRIVATE_PRESENTATION);
         }
         this.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        inputToggleDelegate.setRemoteView(this);
+
+        checkRemoteView();
+        if (context instanceof ZygoteActivity) {
+            ((ZygoteActivity) context).addSystemServiceCallback(name -> {
+                if (name.equals(INPUT_METHOD_SERVICE)) {
+                    inputToggleDelegate.inputServiceCall();
+                }
+            });
+        }
+    }
+
+    private void checkRemoteView() {
+        if (remoteProxy == null) {
+            InterfaceProxy<?> interfaceProxy = InterfaceIpcHub.getInstance().fetchCallObject(viewId);
+            if (interfaceProxy != null && interfaceProxy.getOutProxy() != null) {
+                try {
+                    remoteProxy = (IRemoteView) interfaceProxy.createProxy();
+                } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private String getCurInputText() {
+        if (lastInputConnection != null) {
+            String pre = (String) lastInputConnection.getTextBeforeCursor(Integer.MAX_VALUE,
+                    InputConnection.GET_TEXT_WITH_STYLES);
+            String after = (String) lastInputConnection.getTextAfterCursor(Integer.MAX_VALUE,
+                    InputConnection.GET_TEXT_WITH_STYLES);
+            return (pre == null ? "" : pre) + (after == null ? "" : after);
+        }
+        return "";
+    }
+
+    @Override
+    public void showInput() {
+        checkRemoteView();
+        if (remoteProxy != null) {
+            remoteProxy.showInput();
+        }
+    }
+
+    @Override
+    public void hideInput() {
+        checkRemoteView();
+        if (remoteProxy != null) {
+            remoteProxy.hideInput();
+        }
     }
 
     @Override
@@ -99,9 +164,11 @@ public abstract class BaseRemoteViewPresentation extends Presentation implements
         if (this.state.windowManagerHandler == null) {
             WindowManager windowManagerDelegate = (WindowManager) this.getContext()
                     .getSystemService(Context.WINDOW_SERVICE);
+            inputToggleDelegate.setWindowManager(windowManagerDelegate);
             this.state.windowManagerHandler = new WindowManagerHandler(windowManagerDelegate,
                     this.state.fakeWindowViewGroup);
         }
+        inputToggleDelegate.registerPresentationListener(this);
         this.container = new FrameLayout(this.getContext());
         if (this.state.childView == null) {
             this.state.childView = getContentView(container);
@@ -130,10 +197,47 @@ public abstract class BaseRemoteViewPresentation extends Presentation implements
         this.setContentView(this.rootView);
     }
 
+    private InputConnection lastInputConnection = null;
+    private String showText = "";
+    private int curIndex = -1;
+
+    @Override
+    public void onCreateInputConnectionProxy(@NonNull EditorInfo outAttrs) {
+        lastInputConnection = createInputConnection(outAttrs);
+    }
+
+    protected abstract InputConnection createInputConnection(EditorInfo outAttrs);
+
+    @Override
+    public void remoteSetInputText(String text, int index) {
+        if (lastInputConnection != null) {
+            String pre = (String) lastInputConnection.getTextBeforeCursor(Integer.MAX_VALUE,
+                    InputConnection.GET_TEXT_WITH_STYLES);
+            String after = (String) lastInputConnection.getTextAfterCursor(Integer.MAX_VALUE,
+                    InputConnection.GET_TEXT_WITH_STYLES);
+            String curInputText = (pre == null ? "" : pre) + (after == null ? "" : after);
+            if (TextUtils.isEmpty(curInputText)) {
+                curIndex = -1;
+            }
+            if (!TextUtils.equals(curInputText, showText)) {
+                text = text.replace(showText, curInputText);
+                // 改变远程输入法内容
+                showText = text;
+                if (inputListener != null) {
+                    inputListener.textChanged(showText, showText.length());
+                }
+            }
+            lastInputConnection.deleteSurroundingText(showText.length(), 0);
+            lastInputConnection.commitText(text, text == null ? 0 : text.length());
+            showText = text;
+        }
+    }
+
 
     @MainThread
     @CallSuper
     public void dispose() {
+        inputToggleDelegate.removePresentationListener(this);
         detachState();
     }
 
@@ -141,6 +245,16 @@ public abstract class BaseRemoteViewPresentation extends Presentation implements
         this.container.removeAllViews();
         this.rootView.removeAllViews();
         return this.state;
+    }
+
+    @Override
+    public PresentationRunningState getPresentationRunningState() {
+        return runningState;
+    }
+
+    @Override
+    public void setRemoteViewInputListener(@NonNull InputListener listener) {
+        inputListener = listener;
     }
 
     static class WindowManagerHandler implements InvocationHandler {

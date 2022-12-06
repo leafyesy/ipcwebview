@@ -13,13 +13,11 @@ import android.util.DisplayMetrics;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
-
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
 import com.ysydhc.commonlib.LogUtil;
 import com.ysydhc.interfaceipc.IObjectConnect;
 import com.ysydhc.interfaceipc.InterfaceIPCConst;
@@ -27,8 +25,8 @@ import com.ysydhc.interfaceipc.InterfaceIpcHub;
 import com.ysydhc.interfaceipc.model.ConnectCell;
 import com.ysydhc.interfaceipc.proxy.InterfaceProxy;
 import com.ysydhc.ipcscaffold.RemoteServicePresenter;
+import com.ysydhc.remoteview.view.ProxyRemoteViewContainer;
 import com.ysydhc.remoteweb.interfaces.IRemoteWebView;
-
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 
@@ -101,13 +99,14 @@ public class WebViewImageReaderView extends ProxyRemoteViewContainer implements 
             arguments.put("flag_remote_web", true);
             arguments.put("physical_width", (int) displayMetrics.widthPixels);
             arguments.put("physical_height", (int) (displayMetrics.density * 200 + 0.5F));
-            ConnectCell connectCell = new ConnectCell(surface.hashCode(), surface, arguments);
+            ConnectCell connectCell = new ConnectCell(surface.hashCode(), IRemoteWebView.class, surface, arguments);
             connectBinder.connect(connectCell);
         } catch (RemoteException e) {
             LogUtil.exception(TAG, e);
         }
-        InterfaceProxy<IRemoteWebView> interfaceProxy = new InterfaceProxy<>(surface.hashCode(), IRemoteWebView.class);
-        InterfaceIpcHub.getInstance().putIpcImpl(surface.hashCode(), interfaceProxy);
+        InterfaceProxy<IRemoteWebView> interfaceProxy = new InterfaceProxy<>(surface.hashCode(),
+                IRemoteWebView.class, this);
+        InterfaceIpcHub.getInstance().putIpcImpl(surface.hashCode(), IRemoteWebView.class, interfaceProxy);
         try {
             remoteProxy = interfaceProxy.createProxy();
         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
@@ -130,6 +129,13 @@ public class WebViewImageReaderView extends ProxyRemoteViewContainer implements 
     }
 
     @Override
+    public void setRemoteViewInputListener(@Nullable InputListener listener) {
+        if (remoteProxy != null) {
+            remoteProxy.setRemoteViewInputListener(listener);
+        }
+    }
+
+    @Override
     public void createSuccess() {
 
     }
@@ -147,18 +153,34 @@ public class WebViewImageReaderView extends ProxyRemoteViewContainer implements 
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (remoteProxy != null) {
+        boolean localDispatchTouchEventResult = super.dispatchTouchEvent(ev);
+        if (!localDispatchTouchEventResult && remoteProxy != null) {
             return remoteProxy.dispatchTouchEvent(ev);
         }
-        return super.dispatchTouchEvent(ev);
+        return localDispatchTouchEventResult;
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (remoteProxy != null) {
+        boolean localKeyEventResult = super.dispatchKeyEvent(event);
+        if (!localKeyEventResult && remoteProxy != null) {
             return remoteProxy.dispatchKeyEvent(event);
         }
-        return super.dispatchKeyEvent(event);
+        return localKeyEventResult;
+    }
+
+    @Override
+    public void onCreateInputConnectionProxy(@NonNull EditorInfo outAttrs) {
+        if (remoteProxy != null) {
+            remoteProxy.onCreateInputConnectionProxy(outAttrs);
+        }
+    }
+
+    @Override
+    public void remoteSetInputText(String text, int index) {
+        if (remoteProxy != null) {
+            remoteProxy.remoteSetInputText(text, index);
+        }
     }
 
     @Override

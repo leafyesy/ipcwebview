@@ -9,16 +9,16 @@ public class ConnectCell implements Parcelable {
 
     long key;
 
+    Class<?> clazz;
+
     Parcelable ext;
 
     HashMap<String, Object> arguments;
 
-    public ConnectCell(long key) {
+    public ConnectCell(long key, Class<?> clazz, Parcelable ext,
+            HashMap<String, Object> arguments) {
         this.key = key;
-    }
-
-    public ConnectCell(long key, Parcelable ext, HashMap<String, Object> arguments) {
-        this.key = key;
+        this.clazz = clazz;
         this.ext = ext;
         this.arguments = arguments;
     }
@@ -31,12 +31,17 @@ public class ConnectCell implements Parcelable {
         return ext;
     }
 
+    public Class<?> getClazz() {
+        return clazz;
+    }
+
     public HashMap<String, Object> getArguments() {
         return arguments;
     }
 
     protected ConnectCell(Parcel in) {
         key = in.readLong();
+        clazz = (Class<?>) in.readSerializable();
         ext = in.readParcelable(in.getClass().getClassLoader());
         arguments = in.readHashMap(in.getClass().getClassLoader());
     }
@@ -44,6 +49,7 @@ public class ConnectCell implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeLong(key);
+        dest.writeSerializable(clazz);
         dest.writeParcelable(ext, flags);
         dest.writeMap(arguments);
     }

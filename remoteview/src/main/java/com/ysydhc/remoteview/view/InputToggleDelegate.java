@@ -6,13 +6,11 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
-
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
-
 import com.ysydhc.commonlib.LogUtil;
 import com.ysydhc.remoteview.interfaces.IPresentationListener;
-
+import com.ysydhc.remoteview.interfaces.IRemoteView;
 import java.util.Stack;
 import java.util.function.Function;
 
@@ -42,6 +40,8 @@ public class InputToggleDelegate {
 
     private WindowManager windowManager;
 
+    private IRemoteView remoteView;
+
     private final Handler.Callback lazyCall = new Handler.Callback() {
         @Override
         public boolean handleMessage(@NonNull Message msg) {
@@ -63,6 +63,10 @@ public class InputToggleDelegate {
     public InputToggleDelegate() {
         ht.start();
         lazyHandler = new Handler(ht.getLooper(), lazyCall);
+    }
+
+    public void setRemoteView(IRemoteView remoteView) {
+        this.remoteView = remoteView;
     }
 
     public void registerPresentationListener(IPresentationListener presentationListener) {
@@ -116,6 +120,9 @@ public class InputToggleDelegate {
     }
 
     private void requestToggleSoftInput() {
+        if (remoteView != null) {
+            remoteView.showInput();
+        }
 //        try {
 //            // TODO
 //            //MainServicePresenter.getInstance().getMainProcessBinder().showSoftInput();

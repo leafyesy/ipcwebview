@@ -40,10 +40,10 @@ public class InterfaceIpcHub {
         objectConnectBinder.setConnectObjectCreateList(creator);
     }
 
-    public void putIpcImpl(long key, Object value) {
+    public void putIpcImpl(long key, Class<?> clazz, Object value) {
         // 设置代理
         InterfaceProxy<?> interfaceProxy =
-                value instanceof InterfaceProxy ? (InterfaceProxy) value : new InterfaceProxy<>(key, value);
+                value instanceof InterfaceProxy ? (InterfaceProxy) value : new InterfaceProxy(key, clazz, value);
         synchronized (this) {
             keyToIpcImplMap.put(key, interfaceProxy);
             if (presenter != null) {

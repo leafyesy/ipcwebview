@@ -19,7 +19,7 @@ public class ObjectConnectBinderImpl extends IObjectConnect.Stub {
         for (IConnectObjectCreator creator : connectObjectCreateList) {
             Object result = creator.create(cell);
             if (result != null) {
-                InterfaceIpcHub.getInstance().putIpcImpl(cell.getKey(), result);
+                InterfaceIpcHub.getInstance().putIpcImpl(cell.getKey(), cell.getClazz(), result);
                 return true;
             }
         }

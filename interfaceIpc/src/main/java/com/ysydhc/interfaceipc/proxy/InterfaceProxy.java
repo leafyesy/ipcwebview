@@ -42,9 +42,9 @@ public class InterfaceProxy<T> {
         this.clazz = clazz;
     }
 
-    public InterfaceProxy(long key, T outProxy) {
+    public InterfaceProxy(long key, Class<T> clazz, T outProxy) {
         this.key = key;
-        this.clazz = (Class<T>) outProxy.getClass();
+        this.clazz = clazz;
         this.outProxy = outProxy;
     }
 
@@ -245,9 +245,9 @@ public class InterfaceProxy<T> {
             if (binder == null && outProxy == null) {
                 throw new IllegalStateException("binder and out proxy is both are all null");
             }
-            if (outProxy != null) {
-                return method.invoke(outProxy, args);
-            }
+//            if (outProxy != null) {
+//                return method.invoke(outProxy, args);
+//            }
             long callTimestamp = System.currentTimeMillis();
             methodCallTimestampList.add(callTimestamp);
             if (binder == null) {

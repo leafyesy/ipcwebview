@@ -7,6 +7,8 @@ import android.util.Log;
 import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -15,20 +17,18 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import androidx.annotation.Nullable;
 import com.ysydhc.interfaceipc.model.ConnectCell;
-import com.ysydhc.remoteview.interfaces.IPresentationListener;
 import com.ysydhc.remoteview.view.BaseRemoteViewPresentation;
 import com.ysydhc.remoteview.view.PresentationRunningState;
 import com.ysydhc.remoteview.view.RemoteAccessibilityEventsDelegate;
 import com.ysydhc.remoteweb.interfaces.IRemoteWebView;
 
 
-public class WebViewPresentation extends BaseRemoteViewPresentation implements IPresentationListener, IRemoteWebView {
+public class WebViewPresentation extends BaseRemoteViewPresentation implements IRemoteWebView {
 
     private static final String TAG = "WebViewPresentation";
 
     protected ConnectCell connectCell;
 
-    protected PresentationRunningState runningState = PresentationRunningState.Idle;
     protected WebView mOfflineWebView;
     private JsBridgeListener jsBridgeListener;
     private Context outContext;
@@ -46,6 +46,11 @@ public class WebViewPresentation extends BaseRemoteViewPresentation implements I
     public View getContentView(ViewGroup container) {
         mOfflineWebView = createTestWebView(container);
         return mOfflineWebView;
+    }
+
+    @Override
+    protected InputConnection createInputConnection(EditorInfo outAttrs) {
+        return mOfflineWebView.onCreateInputConnection(outAttrs);
     }
 
     protected WebView createTestWebView(View containerView) {
@@ -146,11 +151,6 @@ public class WebViewPresentation extends BaseRemoteViewPresentation implements I
 //        } catch (RemoteException e) {
 //            e.printStackTrace();
 //        }
-    }
-
-    @Override
-    public PresentationRunningState getPresentationRunningState() {
-        return runningState;
     }
 
     @Override
